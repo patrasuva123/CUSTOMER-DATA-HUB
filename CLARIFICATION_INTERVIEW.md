@@ -9,9 +9,11 @@
 
 ### Round 1: Technology & Deployment
 
-**Q1. Operating System Support**
-- Should the app run on Windows only, or Windows + Mac + Linux?
-- *Answer: [PENDING]*
+**Q1. Operating System Support** ✅
+- **Question:** Should the app run on Windows only, or Windows + Mac + Linux?
+- **Answer:** A) Windows only
+- **Decision:** Build as Windows desktop app (.exe installer)
+- **Implication:** Simpler build process, no Mac/Linux testing needed
 
 ---
 
