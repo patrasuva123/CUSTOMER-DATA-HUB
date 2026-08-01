@@ -1,201 +1,274 @@
-# Customer Data Hub - Architecture Document - v2.0
+# Customer Data Hub - Architecture Document - v2.1
 
-**Version:** 2.0 (Updated with OCR, Enhanced Data Model, and Advanced Features)  
+**Version:** 2.1 (Local Web App - Vue.js + Local JSON Storage)  
 **Date:** July 28, 2026  
 **Purpose:** Technical architecture and implementation guide for AI Agent development
 
 ---
 
-## 🏗️ System Architecture Overview
+## 🏗️ System Architecture Overview - Local Web App
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│         Electron Main Process                       │
-│    (Window Management, File I/O, System APIs)       │
+│         Browser (Chrome, Firefox, Edge, Safari)    │
+│              Vue 3 + Vite Frontend                 │
 └─────────────────────────────────────────────────────┘
            ↓                              ↓
 ┌──────────────────────────┐  ┌──────────────────────────┐
-│   React/Vue Frontend     │  │   Express Backend API    │
-│   (UI Components)        │  │   (Business Logic)       │
+│   Vue Components         │  │   Local Node.js Server   │
+│   (Pinia State Mgmt)     │  │   (Express, Port 5000)   │
 └──────────────────────────┘  └──────────────────────────┘
            ↓                              ↓
 ┌──────────────────────────────────────────────────────┐
-│    CSV Storage Layer + JSON Config + OCR Engine      │
-│  (Tesseract.js for document extraction)              │
+│        JSON File Storage + Tesseract.js OCR          │
+│     (All processing client-side, offline capable)    │
 └──────────────────────────────────────────────────────┘
-           ↓                              ↓
-┌──────────────────────────┐  ┌──────────────────────────┐
-│   File System            │  │   External Libraries     │
-│   (Photos, Documents)    │  │   (Puppeteer, xlsx, OCR) │
-└──────────────────────────┘  └──────────────────────────┘
+           ↓
+┌──────────────────────────────────────────────────────┐
+│          Local PC File System (/data folder)         │
+│   - data/customers.json                              │
+│   - data/important_websites.json                     │
+│   - data/audit_logs.json                             │
+│   - data/settings.json                               │
+│   - data/activity_timeline.json                      │
+│   - uploads/photos/, uploads/documents/              │
+└──────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📂 Project Folder Structure - Enhanced
+## 📂 Project Folder Structure - Local Web App
 
 ```
 customer-data-hub/
-├── public/
-│   ├── icon.png (App icon with your org branding)
-│   └── logo.png (Logo for bio-data templates)
+├── index.html (HTML entry point)
+├── package.json (Dependencies)
+├── vite.config.js (Vite bundler config)
+├── server.js (Local Express server - lightweight)
 │
 ├── src/
-│   ├── main/
-│   │   ├── index.js (Electron main process entry point)
-│   │   ├── preload.js (IPC bridge for security)
-│   │   └── menu.js (Application menu definition)
+│   ├── main.js (Vue app entry point)
+│   ├── App.vue (Root component)
+│   ├── stores/
+│   │   ├── customerStore.js (Pinia store - customers)
+│   │   ├── addressStore.js (Pinia store - addresses)
+│   │   ├── bankStore.js (Pinia store - bank accounts)
+│   │   ├── educationStore.js (Pinia store - education)
+│   │   ├── documentStore.js (Pinia store - documents)
+│   │   ├── settingsStore.js (Pinia store - settings)
+│   │   ├── timelineStore.js (Pinia store - activity)
+│   │   └── auditStore.js (Pinia store - audit logs)
 │   │
-│   ├── renderer/
-│   │   ├── index.js (React/Vue app entry)
-│   │   ├── App.jsx/App.vue (Main app component)
-│   │   ├── components/
-│   │   │   ├── Dashboard.jsx (new: timeline, stats)
-│   │   │   ├── CustomerList.jsx (new: status column)
-│   │   │   ├── CustomerForm.jsx (new: enhanced fields)
-│   │   │   ├── CustomerPersonalProfile.jsx (new: detailed form)
-│   │   │   ├── AddressManager.jsx (new: multiple addresses)
-│   │   │   ├── BankAccountManager.jsx (new: multiple accounts)
-│   │   │   ├── DocumentVault.jsx (new: custom docs + OCR)
-│   │   │   ├── PhotoUploader.jsx (with crop tool)
-│   │   │   ├── BioDataGenerator.jsx (customizable sections)
-│   │   │   ├── ImportExport.jsx
-│   │   │   ├── Settings.jsx (enhanced settings)
-│   │   │   ├── OCRSettings.jsx (new: OCR configuration)
-│   │   │   ├── WebsiteManager.jsx (new: manage websites)
-│   │   │   ├── ActivityTimeline.jsx (new: recent activity)
-│   │   │   └── SearchBar.jsx
-│   │   ├── pages/
-│   │   │   ├── HomePage.jsx
-│   │   │   ├── CustomersPage.jsx (with status column)
-│   │   │   ├── CustomerDetailPage.jsx (multi-section)
-│   │   │   └── SettingsPage.jsx (enhanced)
-│   │   ├── styles/
-│   │   │   ├── App.css (Light theme)
-│   │   │   ├── dark.css (Dark theme)
-│   │   │   └── components.css
-│   │   └── utils/
-│   │       ├── validators.js (Email, phone validation)
-│   │       ├── formatters.js (Date, currency formatting)
-│   │       └── ocrUtils.js (new: OCR helpers)
+│   ├── components/
+│   │   ├── Dashboard.vue (Dashboard component)
+│   │   ├── CustomerList.vue (Customer directory)
+│   │   ├── CustomerForm.vue (Add/edit customer)
+│   │   ├── CustomerPersonalProfile.vue (Personal details form)
+│   │   ├── AddressManager.vue (Multiple addresses)
+│   │   ├── BankAccountManager.vue (Multiple bank accounts)
+│   │   ├── EducationForm.vue (Education records)
+│   │   ├── DocumentVault.vue (Document upload + OCR)
+│   │   ├── PhotoUploader.vue (Photo upload with crop)
+│   │   ├── BioDataGenerator.vue (PDF/HTML generation)
+│   │   ├── ImportExport.vue (Bulk import/export)
+│   │   ├── ActivityTimeline.vue (Recent activities)
+│   │   ├── SearchBar.vue (Search component)
+│   │   └── Settings/
+│   │       ├── OCRSettings.vue (OCR configuration)
+│   │       ├── WebsiteManager.vue (Website management)
+│   │       ├── BioDataSettings.vue (Bio-data sections)
+│   │       ├── ThemeSettings.vue (Theme toggle)
+│   │       ├── BackupRestore.vue (Backup/restore)
+│   │       ├── AuditLog.vue (Audit log viewer)
+│   │       └── TimelineSettings.vue (Timeline config)
 │   │
-│   ├── backend/
-│   │   ├── index.js (Express server entry)
-│   │   ├── routes/
-│   │   │   ├── customers.js (enhanced CRUD)
-│   │   │   ├── addresses.js (new: address CRUD)
-│   │   │   ├── bankAccounts.js (new: bank account CRUD)
-│   │   │   ├── education.js (enhanced education)
-│   │   │   ├── documents.js (new: document vault + OCR)
-│   │   │   ├── biodata.js (customizable bio-data)
-│   │   │   ├── websites.js (new: website management)
-│   │   │   ├── import.js (bulk import)
-│   │   │   ├── export.js (export endpoints)
-│   │   │   ├── backup.js (backup/restore)
-│   │   │   ├── audit.js (audit log endpoints)
-│   │   │   └── ocr.js (new: OCR processing)
-│   │   ├── services/
-│   │   │   ├── CustomerService.js (enhanced)
-│   │   │   ├── AddressService.js (new)
-│   │   │   ├── BankAccountService.js (new)
-│   │   │   ├── CSVService.js (enhanced for new tables)
-│   │   │   ├── DocumentService.js (new: vault management)
-│   │   │   ├── OCRService.js (new: Tesseract.js integration)
-│   │   │   ├── BioDataService.js (customizable)
-│   │   │   ├── WebsiteService.js (new)
-│   │   │   ├── ImportService.js
-│   │   │   ├── AuditService.js (enhanced)
-│   │   │   ├── BackupService.js
-│   │   │   └── TimelineService.js (new: activity tracking)
-│   │   ├── models/
-│   │   │   ├── Customer.js (enhanced schema)
-│   │   │   ├── Address.js (new)
-│   │   │   ├── BankAccount.js (new)
-│   │   │   ├── Education.js (enhanced)
-│   │   │   ├── Document.js (new)
-│   │   │   ├── Website.js (new)
-│   │   │   └── AuditLog.js
-│   │   ├── templates/
-│   │   │   ├── default-biodata.html (enhanced)
-│   │   │   └── custom-templates.json (user templates)
-│   │   └── utils/
-│   │       ├── logger.js (logging utility)
-│   │       ├── database.js (CSV database wrapper)
-│   │       └── constants.js (app constants)
+│   ├── pages/
+│   │   ├── HomePage.vue (Dashboard page)
+│   │   ├── CustomersPage.vue (Customer directory page)
+│   │   ├── CustomerDetailPage.vue (Customer detail page)
+│   │   ├── BioDataGeneratorPage.vue (Bio-data generation page)
+│   │   └── SettingsPage.vue (Settings page)
 │   │
-│   └── shared/
-│       └── constants.js (shared constants)
+│   ├── services/
+│   │   ├── api.js (API communication with local server)
+│   │   ├── customerService.js (Customer CRUD)
+│   │   ├── addressService.js (Address CRUD)
+│   │   ├── bankService.js (Bank account CRUD)
+│   │   ├── educationService.js (Education CRUD)
+│   │   ├── documentService.js (Document CRUD)
+│   │   ├── ocrService.js (OCR processing - Tesseract.js)
+│   │   ├── bioDataService.js (Bio-data generation)
+│   │   ├── importExportService.js (CSV import/export)
+│   │   ├── backupService.js (JSON backup/restore)
+│   │   ├── auditService.js (Audit logging)
+│   │   ├── timelineService.js (Activity timeline)
+│   │   ├── fileService.js (File system operations)
+│   │   └── validators.js (Data validation)
+│   │
+│   ├── utils/
+│   │   ├── formatters.js (Date, currency formatting)
+│   │   ├── ocrUtils.js (OCR helper functions)
+│   │   ├── validators.js (Client-side validation)
+│   │   └── constants.js (App constants)
+│   │
+│   └── styles/
+│       ├── main.css (Global styles)
+│       ├── light-theme.css (Light theme)
+│       └── dark-theme.css (Dark theme)
 │
-├── data/ (User data storage - created at runtime)
-│   ├── customers.csv (enhanced schema)
-│   ├── addresses.csv (new)
-│   ├── bank_accounts.csv (new)
-│   ├── education.csv (enhanced schema)
-│   ├── documents.csv (enhanced with OCR data)
-│   ├── metadata.json (app settings + OCR config)
-│   ├── important_websites.json (new: default websites)
-│   ├── audit_logs.json
-│   ├── audit_logs.csv
-│   ├── photos/ (customer photos)
-│   ├── documents/ (uploaded documents)
-│   ├── biodata_templates/ (custom templates)
-│   └── backups/ (backup files)
+├── data/ (Created at runtime, stores all customer data)
+│   ├── customers.json (All customer records)
+│   ├── important_websites.json (Website configurations)
+│   ├── audit_logs.json (Audit trail)
+│   ├── settings.json (App settings)
+│   ├── activity_timeline.json (Recent activities)
+│   └── db/
+│       └── backup_TIMESTAMP.json (Backup files)
 │
-├── package.json (Dependencies)
-├── electron-builder.json (Build configuration)
-├── webpack.config.js (Build configuration)
-├── REQUIREMENTS.md (PRD v2.0)
-├── ARCHITECTURE.md (This file - v2.0)
-├── DEVELOPMENT_PLAN.md (Enhanced task breakdown)
-├── CLARIFICATION_INTERVIEW.md (Decision log)
-└── README.md (Quick start guide)
+├── uploads/ (Created at runtime, stores uploaded files)
+│   ├── photos/
+│   │   └── CUST_001.jpg (Customer photos)
+│   ├── documents/
+│   │   └── CUST_001_Aadhaar.jpg (Uploaded documents)
+│   └── biodata/
+│       └── CUST_001_biodata.pdf (Generated PDFs)
+│
+├── dist/ (Built Vue app - generated by Vite)
+│   └── (Compiled and optimized app)
+│
+├── README.md
+├── REQUIREMENTS.md
+├── ARCHITECTURE.md
+└── DEVELOPMENT_PLAN.md
 ```
 
 ---
 
-## 🗃️ Enhanced Database Schema (CSV + JSON)
+## 💾 Data Storage Structure - JSON Files (No Database)
 
-### **customers.csv - Enhanced**
+### **data/customers.json - Single Source of Truth**
+```json
+{
+  "version": "2.1",
+  "last_updated": "2026-07-28T14:30:22Z",
+  "customers": [
+    {
+      "id": "CUST_001",
+      "name": "Rajesh Kumar",
+      "father_name": "Ram Kumar",
+      "mother_name": "Geeta Singh",
+      "dob": "1990-01-08",
+      "gender": "Male",
+      "age": 35,
+      "primary_language": "English",
+      "religion": "Hindu",
+      "marital_status": "Married",
+      "spouse_name": "Priya Kumar",
+      "phone": "9876543210",
+      "email": "rajesh@email.com",
+      "aadhaar_no": "XXXX-XXXX-1234",
+      "voter_id": "VOTER2024001",
+      "ration_card_no": "RC-2024-001",
+      "pan_number": "ABCDE1234F",
+      "caste": "OBC",
+      "caste_cert_no": "CASTE-2024-001",
+      "caste_cert_date": "2024-01-15",
+      "blood_group": "O+",
+      "status": "Active",
+      "photo_path": "uploads/photos/CUST_001.jpg",
+      "addresses": [
+        {
+          "id": "ADDR_001",
+          "type": "Residential",
+          "street": "123 Main St",
+          "state": "Delhi",
+          "block": "North",
+          "gram_station": "Station 1",
+          "post_office": "Post 1",
+          "village": "Village A",
+          "pin_code": "110001",
+          "is_primary": true
+        }
+      ],
+      "bank_accounts": [
+        {
+          "id": "BANK_001",
+          "bank_name": "HDFC Bank",
+          "branch": "Delhi Main",
+          "account_number": "123456789012",
+          "ifsc_code": "HDFC0001234",
+          "account_type": "Savings",
+          "is_primary": true
+        }
+      ],
+      "education": [
+        {
+          "id": "EDU_001",
+          "level": "B.Tech",
+          "course_name": "Computer Science",
+          "institution": "IIT Delhi",
+          "year_completed": 2012,
+          "board_university": "IIT",
+          "admit_number": "ADM-2012-001",
+          "registration_number": "REG-2012-001",
+          "total_marks": 1000,
+          "obtained_marks": 850,
+          "percentage": 85,
+          "grade": "A",
+          "document_path": "uploads/documents/CUST_001_BTech.pdf"
+        }
+      ],
+      "documents": [
+        {
+          "id": "DOC_001",
+          "type": "Aadhaar",
+          "file_name": "Aadhaar_Card.jpg",
+          "file_path": "uploads/documents/CUST_001_Aadhaar.jpg",
+          "upload_date": "2026-01-15",
+          "ocr_extracted": {
+            "aadhaar_no": "123456789012",
+            "name": "Rajesh Kumar",
+            "dob": "1990-01-08",
+            "address": "Delhi"
+          },
+          "ocr_confidence": 95
+        }
+      ],
+      "created_date": "2026-01-15",
+      "last_modified": "2026-07-28"
+    }
+  ]
+}
 ```
-customer_id,name,father_name,mother_name,dob,gender,age,primary_language,religion,marital_status,spouse_name,phone,email,aadhaar_no,voter_id,ration_card_no,pan_number,caste,caste_cert_no,caste_cert_date,blood_group,photo_path,status,notes,created_date,last_modified
 
-CUST_001,Rajesh Kumar,Ram Kumar,Geeta Singh,1990-01-08,Male,35,English,Hindu,Married,Priya Kumar,9876543210,rajesh@email.com,123456789012,VOTER2024001,RC-2024-001,ABCDE1234F,OBC,CASTE-2024-001,2024-01-15,"data/photos/CUST_001.jpg",Active,"Senior executive",2026-01-15,2026-07-28
+### **data/settings.json**
+```json
+{
+  "version": "2.1",
+  "theme": "dark",
+  "language": "English",
+  "ocr_enabled": true,
+  "ocr_confidence_threshold": 90,
+  "ocr_document_types": ["Aadhaar", "Caste", "PAN", "Passbook", "VoterID", "RationCard", "EducationCert"],
+  "timeline_recent_count": 10,
+  "biodata_included_sections": [
+    "personal_details",
+    "full_name",
+    "dob",
+    "marital_status",
+    "education",
+    "work_experience",
+    "address_details",
+    "important_websites",
+    "aadhaar_uidai"
+  ],
+  "last_backup": "2026-07-28T14:30:22Z",
+  "total_customers": 150,
+  "app_version": "2.1.0"
+}
 ```
 
-### **addresses.csv - New**
-```
-customer_id,address_id,address_type,street_address,state,block,gram_station,post_office,village,pin_code,is_primary,created_date
-
-CUST_001,ADDR_001,Residential,"123 Main St","Delhi","North","Station 1","Post 1","Village A","110001",true,2026-01-15
-CUST_001,ADDR_002,Permanent,"456 Secondary St","UP","South","Station 2","Post 2","Village B","201001",false,2026-01-20
-```
-
-### **bank_accounts.csv - New**
-```
-customer_id,account_id,bank_name,branch,account_number,ifsc_code,account_type,is_primary,created_date
-
-CUST_001,BANK_001,HDFC Bank,Delhi Main,123456789012,HDFC0001234,Savings,true,2026-01-15
-CUST_001,BANK_002,ICICI Bank,Delhi Branch,987654321098,ICIC0005678,Current,false,2026-02-10
-```
-
-### **education.csv - Enhanced**
-```
-customer_id,education_id,level,course_name,institution,year_completed,board_university,admit_number,registration_number,total_marks,obtained_marks,percentage,grade,document_path,created_date
-
-CUST_001,EDU_001,B.Tech,Computer Science,IIT Delhi,2012,IIT,ADM-2012-001,REG-2012-001,1000,850,85,A,"data/documents/CUST_001_BTech_Cert.pdf",2026-01-15
-CUST_001,EDU_002,12th,Science,Delhi Public School,2008,CBSE,ADM-2008-001,REG-2008-001,500,460,92,A+,"data/documents/CUST_001_12th_Cert.pdf",2026-01-15
-```
-
-### **documents.csv - Enhanced with OCR**
-```
-doc_id,customer_id,document_type,file_name,file_path,upload_date,ocr_extracted_data,ocr_confidence,created_date
-
-DOC_001,CUST_001,Aadhaar,"Aadhaar_Card.jpg","data/documents/CUST_001_Aadhaar.jpg",2026-01-15,"{""aadhaar_no"":""123456789012"",""name"":""Rajesh Kumar"",""dob"":""1990-01-08"",""address"":""Delhi""}",95,2026-01-15
-DOC_002,CUST_001,PAN,"Pan_Card.jpg","data/documents/CUST_001_PAN.jpg",2026-01-16,"{""pan_no"":""ABCDE1234F""}",92,2026-01-16
-DOC_003,CUST_001,Passbook,"Passbook_Page.jpg","data/documents/CUST_001_Passbook.jpg",2026-01-17,"{""account_no"":""123456789012"",""ifsc"":""HDFC0001234"",""bank_name"":""HDFC Bank""}",88,2026-01-17
-```
-
-### **important_websites.json - New (Global Settings)**
+### **data/important_websites.json**
 ```json
 [
   {
@@ -225,87 +298,64 @@ DOC_003,CUST_001,Passbook,"Passbook_Page.jpg","data/documents/CUST_001_Passbook.
 ]
 ```
 
-### **metadata.json - Enhanced Settings**
+### **data/activity_timeline.json**
 ```json
 {
-  "app_version": "2.0.0",
-  "last_backup": "2026-07-28T14:30:22Z",
-  "theme": "dark",
-  "total_customers": 150,
-  "ocr_enabled": true,
-  "ocr_confidence_threshold": 90,
-  "ocr_document_types": ["Aadhaar", "Caste", "PAN", "Passbook", "VoterID", "RationCard", "EducationCert"],
-  "timeline_recent_count": 10,
-  "biodata_included_sections": [
-    "personal_details",
-    "full_name",
-    "dob",
-    "marital_status",
-    "education",
-    "work_experience",
-    "address_details",
-    "important_websites",
-    "aadhaar_uidai"
-  ],
-  "custom_templates": [
+  "activities": [
     {
-      "id": "template_standard",
-      "name": "Standard Bio-Data",
-      "fields": ["name", "photo", "education", "bank", "contact"],
-      "created_date": "2026-01-01"
+      "id": "ACT_001",
+      "timestamp": "2026-07-28T14:35:00Z",
+      "customer_id": "CUST_001",
+      "customer_name": "Rajesh Kumar",
+      "action": "customer_added",
+      "description": "New customer added"
+    },
+    {
+      "id": "ACT_002",
+      "timestamp": "2026-07-28T15:22:45Z",
+      "customer_id": "CUST_001",
+      "customer_name": "Rajesh Kumar",
+      "action": "document_uploaded",
+      "description": "Document uploaded: Aadhaar"
     }
-  ],
-  "max_capacity": 5000
+  ]
 }
 ```
 
-### **activity_timeline.json - New (Activity Tracking)**
+### **data/audit_logs.json**
 ```json
-[
-  {
-    "timestamp": "2026-07-27T14:35:00Z",
-    "customer_id": "CUST_001",
-    "customer_name": "Rajesh Kumar",
-    "action": "customer_added",
-    "description": "New customer added"
-  },
-  {
-    "timestamp": "2026-07-28T09:15:30Z",
-    "customer_id": "CUST_001",
-    "customer_name": "Rajesh Kumar",
-    "action": "photo_uploaded",
-    "description": "Customer photo uploaded"
-  },
-  {
-    "timestamp": "2026-07-28T11:22:45Z",
-    "customer_id": "CUST_001",
-    "customer_name": "Rajesh Kumar",
-    "action": "biodata_generated",
-    "description": "Bio-data PDF generated"
-  },
-  {
-    "timestamp": "2026-07-28T13:40:20Z",
-    "customer_id": "CUST_002",
-    "customer_name": "Aarti Das",
-    "action": "customer_added",
-    "description": "New customer added"
-  }
-]
+{
+  "logs": [
+    {
+      "id": "AUD_001",
+      "timestamp": "2026-07-28T14:35:00Z",
+      "action": "customer_created",
+      "customer_id": "CUST_001",
+      "field_changes": {
+        "name": { "old": null, "new": "Rajesh Kumar" },
+        "phone": { "old": null, "new": "9876543210" }
+      },
+      "user": "system"
+    }
+  ]
+}
 ```
 
 ---
 
-## 🔄 OCR Architecture - Tesseract.js Integration
+## 🔄 OCR Architecture - Tesseract.js in Browser
 
-### **OCR Document Processing Flow:**
+### **OCR Processing Flow (All Client-Side):**
 ```
 User Uploads Document
     ↓
-Identify Document Type
+Identify Document Type (Aadhaar, PAN, etc.)
     ↓
 Check if OCR enabled for this type (Settings)
     ↓
-Tesseract.js Processing (Local, Offline)
+Load Tesseract.js in Browser
+    ↓
+Send image to Tesseract (Client-side processing)
     ↓
 Extract Text & Data
     ↓
@@ -315,15 +365,17 @@ Is Confidence >= 90%?
     ├─ YES → Show extracted data with message
     ├─ NO → Show warning "Low confidence, manual review recommended"
     ↓
-User Reviews Extracted Data
+User Reviews Extracted Data in Modal
     ├─ Can edit extracted values
     ├─ Can accept/reject extraction
     ↓
-Save to documents.csv with OCR_extracted_data JSON
+Save to data/customers.json with OCR_extracted_data
     ↓
 Auto-populate related customer fields
     ↓
-Log audit entry
+Add audit entry to data/audit_logs.json
+    ↓
+Update activity timeline in data/activity_timeline.json
 ```
 
 ### **OCR Extraction Mapping:**
@@ -331,8 +383,8 @@ Log audit entry
 {
   "Aadhaar": ["aadhaar_no", "name", "dob", "address"],
   "Caste": ["caste_cert_no", "caste_cert_date"],
-  "PAN": ["pan_no"],
-  "Passbook": ["account_no", "ifsc_code", "bank_name"],
+  "PAN": ["pan_number"],
+  "Passbook": ["account_number", "ifsc_code", "bank_name"],
   "VoterID": ["voter_id"],
   "RationCard": ["ration_card_no"],
   "EducationCert": ["certificate_no", "board_university", "score"]
@@ -341,240 +393,339 @@ Log audit entry
 
 ---
 
-## 🔄 Data Flow Architecture - Enhanced
+## 🔌 API Endpoints - Local Express Server
 
-### **1. Customer Creation with Multiple Addresses/Bank Accounts:**
+### **Express Server (Port 5000, Lightweight)**
+- Runs locally on same machine
+- Handles file I/O (JSON read/write)
+- Serves static files (photos, documents)
+- CORS enabled for localhost only
+
+### **API Routes (JSON Request/Response):**
+
+**Customers:**
 ```
-User Input Form
-    ↓
-React Component (CustomerPersonalProfile.jsx)
-    ↓
-Add Address(es) via AddressManager.jsx
-    ↓
-Add Bank Account(s) via BankAccountManager.jsx
-    ↓
-IPC Call → Main Process
-    ↓
-Express Route (POST /api/customers)
-    ↓
-CustomerService.js (Validation, duplicate check)
-    ↓
-CSVService.js (Write to customers.csv)
-    ↓
-AddressService.js (Write to addresses.csv)
-    ↓
-BankAccountService.js (Write to bank_accounts.csv)
-    ↓
-AuditService.js (Log: "Customer created")
-    ↓
-TimelineService.js (Add to activity timeline)
-    ↓
-Response → UI Update
+POST   /api/customers              (Create customer)
+GET    /api/customers              (Get all customers)
+GET    /api/customers/:id          (Get customer with all nested data)
+PUT    /api/customers/:id          (Update customer)
+PUT    /api/customers/:id/status   (Update status only)
+DELETE /api/customers/:id          (Delete customer)
+GET    /api/customers/search?q=... (Search by name/phone/email)
 ```
 
-### **2. OCR Document Processing:**
+**Addresses:**
 ```
-User Uploads Document (Aadhaar, PAN, etc.)
-    ↓
-DocumentVault.jsx (File selection)
-    ↓
-IPC Call → Main Process
-    ↓
-Express Route (POST /api/documents/upload)
-    ↓
-File saved to data/documents/
-    ↓
-OCRService.js (Tesseract.js processing)
-    ↓
-Check confidence >= 90%
-    ├─ Extract relevant fields based on document type
-    ├─ Show message: "Successfully extracted: Aadhaar No (XXXX), Name (YYY), DOB (ZZZ)"
-    ↓
-User Reviews in DocumentVault
-    ├─ Can edit extracted values
-    ├─ Click "Approve" to save
-    ↓
-DocumentService.js (Save to documents.csv)
-    ├─ Store OCR_extracted_data as JSON
-    ├─ Store OCR_confidence score
-    ↓
-Auto-populate customer fields:
-    ├─ If Aadhaar extracted → update aadhaar_no, name, dob, address in customers.csv
-    ├─ If PAN extracted → update pan_number
-    ├─ etc.
-    ↓
-AuditService.js (Log: "Document uploaded + OCR extracted")
-    ↓
-TimelineService.js (Add to activity timeline)
+POST   /api/addresses              (Add address)
+GET    /api/addresses/:customerId  (Get all addresses for customer)
+PUT    /api/addresses/:id          (Update address)
+DELETE /api/addresses/:id          (Delete address)
+PUT    /api/addresses/:id/primary  (Set as primary)
 ```
 
-### **3. Status Update & Activity Timeline:**
+**Bank Accounts:**
 ```
-User Changes Customer Status
-    ↓
-Customer Directory (CustomerList.jsx)
-    ↓
-IPC Call → API (PUT /api/customers/:id/status)
-    ↓
-CustomerService.js (Update status in customers.csv)
-    ↓
-AuditService.js (Log: "Status changed from Active to Inactive")
-    ↓
-TimelineService.js (Add: "Rajesh Kumar - Status Changed - July 28")
-    ↓
-Dashboard Activity Timeline Refreshes
+POST   /api/bank-accounts          (Add account)
+GET    /api/bank-accounts/:customerId (Get all accounts)
+PUT    /api/bank-accounts/:id      (Update account)
+DELETE /api/bank-accounts/:id      (Delete account)
+PUT    /api/bank-accounts/:id/primary (Set as primary)
+```
+
+**Documents & OCR:**
+```
+POST   /api/documents/upload       (Upload document)
+POST   /api/documents/:id/ocr      (Process OCR)
+GET    /api/documents/:customerId  (Get customer documents)
+PUT    /api/documents/:id          (Update document)
+DELETE /api/documents/:id          (Delete document)
+```
+
+**Settings & Configuration:**
+```
+GET    /api/settings               (Get all settings)
+PUT    /api/settings               (Update settings)
+GET    /api/websites               (Get all websites)
+POST   /api/websites               (Add website)
+PUT    /api/websites/:id           (Update website)
+DELETE /api/websites/:id           (Delete website)
+```
+
+**Activity & Audit:**
+```
+GET    /api/timeline               (Get activity timeline)
+GET    /api/audit-logs             (Get audit logs)
+GET    /api/audit-logs?filter=...  (Filter audit logs)
+```
+
+**Import/Export:**
+```
+POST   /api/import/csv             (Import customers from CSV)
+GET    /api/export/csv             (Export all to CSV)
+GET    /api/export/excel           (Export all to XLSX)
+POST   /api/backup/create          (Create JSON backup)
+POST   /api/backup/restore         (Restore from JSON)
 ```
 
 ---
 
-## 💾 Multi-Table Data Management
+## 🔄 Data Flow - Customer Creation
 
-### **Customer Detail Page - Nested Data:**
 ```
-Customer (Main Record)
-├── Address(es) - Multiple records linked by customer_id
-├── Bank Account(s) - Multiple records linked by customer_id
-├── Education Record(s) - Multiple records linked by customer_id
-└── Document(s) - Multiple records linked by customer_id
-```
-
-### **Service Layer - Coordinated Saves:**
-```
-CustomerService.save(customer, addresses, bankAccounts, education, documents)
-    ├── Save customer to customers.csv
-    ├── For each address → Save to addresses.csv
-    ├── For each bank → Save to bank_accounts.csv
-    ├── For each education → Save to education.csv
-    ├── For each document → Save to documents.csv
-    └── Return success/error for entire transaction
+1. User fills form in CustomerForm.vue
+   ↓
+2. Vue component calls customerService.createCustomer()
+   ↓
+3. Service validates data (validators.js)
+   ↓
+4. Service calls API: POST /api/customers
+   ↓
+5. Express server receives request
+   ↓
+6. Read data/customers.json (JSON file)
+   ↓
+7. Add new customer record to array
+   ↓
+8. Write updated JSON back to data/customers.json
+   ↓
+9. Check for duplicates and add audit entry
+   ↓
+10. Add activity timeline entry
+    ↓
+11. Return success response to Vue component
+    ↓
+12. Pinia store updates (customerStore, timelineStore, auditStore)
+    ↓
+13. Vue component re-renders with new data
+    ↓
+14. Show success message to user
 ```
 
 ---
 
-## 🔌 IPC (Inter-Process Communication) Bridge - Enhanced
+## 🔄 Data Flow - OCR Document Processing
 
-### **New IPC Channels:**
+```
+1. User selects document in DocumentVault.vue
+   ↓
+2. File selected → ocrService.processOCR(file, documentType)
+   ↓
+3. Service loads Tesseract.js in browser
+   ↓
+4. Tesseract processes image (client-side, offline)
+   ↓
+5. Extract text based on document type
+   ↓
+6. Calculate confidence score
+   ↓
+7. Show extracted data in modal for review
+   ↓
+8. User edits if needed and clicks "Approve"
+   ↓
+9. Call API: POST /api/documents/upload
+   ↓
+10. Express server saves file to uploads/documents/
+    ↓
+11. Save document record to data/customers.json
+    ↓
+12. Auto-populate customer fields (if Aadhaar, extract name, DOB, etc.)
+    ↓
+13. Update data/audit_logs.json with extraction details
+    ↓
+14. Update data/activity_timeline.json
+    ↓
+15. Return success response
+    ↓
+16. Pinia stores update
+    ↓
+17. Show success message with extracted data
+```
+
+---
+
+## 🎯 Pinia State Management Architecture
+
+### **Stores (Centralized State):**
+
+**customerStore.js:**
 ```javascript
-// Address Management
-'add-address'
-'update-address'
-'delete-address'
-'get-addresses'
-
-// Bank Account Management
-'add-bank-account'
-'update-bank-account'
-'delete-bank-account'
-'get-bank-accounts'
-
-// OCR Processing
-'process-ocr'
-'get-ocr-confidence'
-
-// Website Management
-'add-website'
-'update-website'
-'delete-website'
-'get-websites'
-
-// Activity Timeline
-'get-activity-timeline'
-'get-timeline-count'
-
-// Document Vault
-'upload-document'
-'process-document-ocr'
-'delete-document'
-'get-documents'
+export const useCustomerStore = defineStore('customer', {
+  state: () => ({
+    customers: [],
+    selectedCustomer: null,
+    loading: false,
+    error: null
+  }),
+  getters: {
+    getCustomerById: (state) => (id) => state.customers.find(c => c.id === id),
+    getCustomersByStatus: (state) => (status) => state.customers.filter(c => c.status === status),
+    getTotalCustomers: (state) => state.customers.length,
+    searchCustomers: (state) => (query) => {
+      return state.customers.filter(c => 
+        c.name.toLowerCase().includes(query) || 
+        c.phone.includes(query) ||
+        c.email.toLowerCase().includes(query)
+      );
+    }
+  },
+  actions: {
+    async fetchCustomers() {
+      this.loading = true;
+      try {
+        const response = await fetch('/api/customers');
+        this.customers = await response.json();
+      } catch (e) {
+        this.error = e.message;
+      }
+      this.loading = false;
+    },
+    async createCustomer(customerData) {
+      try {
+        const response = await fetch('/api/customers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(customerData)
+        });
+        const newCustomer = await response.json();
+        this.customers.push(newCustomer);
+        return newCustomer;
+      } catch (e) {
+        this.error = e.message;
+      }
+    }
+  }
+});
 ```
+
+**Similarly for addressStore, bankStore, documentStore, settingsStore, timelineStore, auditStore**
 
 ---
 
-## 🏃 Process Flow Diagrams
+## 🏃 Process Flows
 
 ### **Multi-Address Customer Creation:**
 ```
-1. Fill Personal Details → Click "Add Address"
-2. Address Modal Opens → Fill Street, State, Village, etc.
-3. Mark as Primary (checkbox)
-4. Click "Save Address" → Add to list
-5. Add more addresses? → Repeat steps 2-4
-6. All addresses shown in table
-7. Click "Final Save" → All data saved to CSVs
+1. CustomerForm.vue → Fill personal details
+2. AddressManager.vue → Click "Add Address"
+3. Address modal opens → Fill address details
+4. Mark as Primary checkbox
+5. Click "Save Address" → Add to addresses array
+6. Repeat for more addresses
+7. All addresses shown in table
+8. Click "Final Save" Customer
+9. All data (customer + addresses + banks) sent to API
+10. Express server saves all to data/customers.json
+11. Success message shown
 ```
 
-### **OCR Document Processing:**
+### **Bio-Data Generation:**
 ```
-1. Click "Upload Document" in Document Vault
-2. Select file (Aadhaar, PAN, Passbook, etc.)
-3. File uploaded
-4. OCR processing starts → Show spinner
-5. Extraction complete
-6. Display message: "Successfully extracted: [data]"
-7. Show extracted data in editable form
-8. User reviews & edits if needed
-9. Click "Approve" to auto-populate customer fields
-10. Document saved with OCR metadata
+1. User goes to BioDataGenerator page
+2. Select customer from dropdown
+3. Check which sections to include
+4. Select format (PDF or HTML)
+5. Click "Generate"
+6. bioDataService builds HTML from template
+7. If PDF: Use html2pdf to convert
+8. If HTML: Generate HTML file
+9. Browser downloads file
+10. File saved to user's Downloads folder
+11. Success message with file path
+```
+
+### **Backup & Restore:**
+```
+Backup:
+1. User clicks "Backup Now" in Settings
+2. backupService reads all JSON files from data/
+3. Zips or combines into single backup.json
+4. Browser downloads backup_TIMESTAMP.json
+5. File saved to user's Downloads folder
+
+Restore:
+1. User clicks "Restore from Backup"
+2. Selects backup.json file from computer
+3. Confirms "This will replace all data"
+4. backupService reads backup file
+5. Overwrites data/customers.json and other files
+6. App reloads with restored data
+7. Success message
 ```
 
 ---
 
-## 📊 Performance Considerations - v2.0
+## 🔐 Security - Local PC Only
 
-### **Optimization for Enhanced Data:**
-
-1. **Multi-Table Indexing:**
-   - Create index on customer_id in: addresses, bank_accounts, education, documents
-   - Fast lookup: `addresses.filter(a => a.customer_id === id)`
-
-2. **Pagination:**
-   - Customer list: 50 per page
-   - Documents per customer: 20 per page
-   - Activity timeline: Last 10 (configurable)
-
-3. **Lazy Loading:**
-   - Load customer basic info first
-   - Load addresses on tab click
-   - Load documents on vault tab click
-
-4. **Caching:**
-   - Cache important_websites in memory
-   - Cache metadata.json settings
-   - Cache activity timeline (last 100 activities)
-
-5. **OCR Optimization:**
-   - Tesseract.js runs on main thread (consider Web Worker if slow)
-   - Process one document at a time
-   - Show progress bar for large documents
+- ✅ **No internet communication** - All processing local
+- ✅ **No cloud storage** - Data stays in data/ folder
+- ✅ **No database server** - JSON files only
+- ✅ **Express server localhost only** - No external access
+- ✅ **Aadhaar masked** - Display as XXXX-XXXX-1234
+- ✅ **No encryption** - Single-user local app
+- ✅ **Audit logs** - Track all changes locally
+- ✅ **Backup/restore** - JSON export/import only
 
 ---
 
-## 🔐 Security - v2.0
+## 📦 Dependencies - Minimal, Local-Only
 
-- ✅ No encryption (local storage only)
-- ✅ Aadhaar masked display (XXXX-XXXX-1234)
-- ✅ Audit logs track all changes
-- ✅ OCR data stored locally (no cloud transmission)
-- ✅ No authentication (single-user)
-- ✅ Backup files for recovery
-
----
-
-## 📦 Dependencies - Enhanced v2.0
-
-| Component | Package | Version |
+| Component | Package | Purpose |
 |-----------|---------|---------|
-| OCR Engine | tesseract.js | latest |
-| Word Doc | docx | latest |
-| CSV Parsing | csv-parser | latest |
-| Excel Export | xlsx | latest |
-| PDF Generation | puppeteer | latest |
-| UI Components | @mui/material | latest |
-| React | react | 18+ |
-| Express | express | 4.18+ |
-| Electron | electron | latest |
+| Frontend | vue@3 | UI framework |
+| State Mgmt | pinia | Store management |
+| UI | vuetify@3 | Material design components |
+| Styling | tailwindcss | Utility CSS |
+| Build | vite | Fast build tool |
+| Backend | express | Local server |
+| OCR | tesseract.js | Client-side text extraction |
+| PDF | html2pdf.js | Browser-based PDF generation |
+| Excel | xlsx | Excel export |
+| Crop | vue-cropper | Image cropping |
+| Validation | joi | Schema validation |
+| File System | fs (node.js) | Read/write JSON files |
 
 ---
 
-**Architecture v2.0 Ready for AI Agent Implementation!**
+## 🚀 How to Run
+
+### **Development:**
+```bash
+npm install              # Install dependencies
+npm run dev             # Start Vite dev server + Express server
+# Browser opens: http://localhost:5173
+# Express running on: http://localhost:5000
+# All data in: ./data/ folder
+```
+
+### **Production (Folder Distribution):**
+```bash
+npm run build           # Build Vue app with Vite
+npm run server          # Run Express server
+# App available at: http://localhost:5173
+# Can copy entire folder to USB/another PC
+```
+
+---
+
+## 📊 Performance & Scalability
+
+| Metric | Value |
+|--------|-------|
+| Max customers | 5,000 |
+| File size (10,000 customers) | ~50 MB (JSON) |
+| Load time (1,000 customers) | <500ms |
+| Search speed | Real-time (< 100ms) |
+| OCR processing | 3-10 seconds per image |
+| Backup file size (5,000 customers) | ~25 MB |
+
+### **Optimization Strategies:**
+- Lazy load customer data (first 100, then pagination)
+- Cache OCR results to avoid re-processing
+- Compress photos before upload
+- Pagination for large lists (50 per page)
+- Virtual scrolling for customer directory
+
+---
+
+**Architecture v2.1 Ready for AI Agent Implementation!**
 
