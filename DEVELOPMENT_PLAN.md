@@ -1,15 +1,16 @@
-# Customer Data Hub - Development Plan - v2.0
+# Customer Data Hub - Development Plan - v2.1
 
-**Version:** 2.0 (Enhanced with OCR, Multi-Address, Multi-Bank, Activity Timeline)  
+**Version:** 2.1 (Local Web App - Vue.js + Express + JSON)  
 **Date:** July 28, 2026  
 **Target Duration:** 3-4 weeks for MVP (Phase 1)  
+**Platform:** Browser-based web app (runs locally on PC, no internet required)  
 **For:** AI Agent Development Guidance
 
 ---
 
-## 🎯 Development Overview - v2.0
+## 🎯 Development Overview - v2.1
 
-This document provides a step-by-step implementation guide for building Customer Data Hub v2.0 with advanced features. Follow these tasks in sequence for optimal code organization and dependency management.
+This document provides a step-by-step implementation guide for building Customer Data Hub v2.1 as a local web application. Follow these tasks in sequence for optimal code organization and dependency management.
 
 ---
 
@@ -17,247 +18,372 @@ This document provides a step-by-step implementation guide for building Customer
 
 ### **Sprint 1: Project Setup (Days 1-2)**
 
-#### **Task 1.1: Initialize Electron + React Project**
-- **Description:** Set up base Electron project with React frontend + Tesseract.js OCR
+#### **Task 1.1: Initialize Vue 3 + Vite Project**
+- **Description:** Set up Vue 3 web app with local Express backend
 - **Steps:**
-  1. Create project folder structure
-  2. Initialize package.json with dependencies:
-     - electron, react, react-dom, express, webpack, webpack-cli, electron-builder
-     - **NEW:** tesseract.js (OCR engine)
-  3. Create webpack.config.js for bundling
-  4. Set up scripts: dev, build, start, build:exe
-- **Deliverable:** Working Electron window showing "App Ready"
-- **Testing:** Run `npm start` → Electron window launches
+  1. Create project folder `customer-data-hub`
+  2. Create `package.json` with dependencies:
+     - vue@3, vite, @vitejs/plugin-vue
+     - express, cors, multer
+     - pinia, vuetify@3, tailwindcss
+     - tesseract.js, html2pdf.js, xlsx, vue-cropper
+  3. Create `vite.config.js` configuration
+  4. Create `server.js` - lightweight Express server (port 5000)
+  5. Set up npm scripts: `dev`, `build`, `preview`, `server`
+- **Deliverable:** Working Vue app in browser at `http://localhost:5173`
+- **Testing:** 
+  - Run `npm run dev` → Vite dev server starts
+  - Run `npm run server` in another terminal → Express starts on port 5000
+  - Browser shows "App Ready" message
 
 ---
 
-#### **Task 1.2: Folder Structure & File Organization - Enhanced**
-- **Description:** Create all necessary folders with v2.0 components
-- **New Files to Create:**
+#### **Task 1.2: Folder Structure & File Organization - v2.1**
+- **Description:** Create all necessary folders for local web app
+- **Create Folders:**
   ```
-  src/renderer/components/CustomerPersonalProfile.jsx
-  src/renderer/components/AddressManager.jsx
-  src/renderer/components/BankAccountManager.jsx
-  src/renderer/components/DocumentVault.jsx
-  src/renderer/components/ActivityTimeline.jsx
-  src/renderer/components/OCRSettings.jsx
-  src/renderer/components/WebsiteManager.jsx
+  src/
+  ├── stores/ (8 Pinia stores)
+  ├── components/ (15+ Vue components)
+  ├── pages/ (5 page components)
+  ├── services/ (14 service files)
+  ├── utils/
+  └── styles/
   
-  src/backend/services/AddressService.js
-  src/backend/services/BankAccountService.js
-  src/backend/services/DocumentService.js
-  src/backend/services/OCRService.js
-  src/backend/services/WebsiteService.js
-  src/backend/services/TimelineService.js
-  
-  src/backend/routes/addresses.js
-  src/backend/routes/bankAccounts.js
-  src/backend/routes/documents.js
-  src/backend/routes/websites.js
-  src/backend/routes/ocr.js
-  
-  src/renderer/utils/ocrUtils.js
+  data/ (Created at runtime)
+  uploads/ (Created at runtime)
+  dist/ (Built app)
   ```
 - **Deliverable:** Full folder structure ready
-- **Testing:** Verify all files exist, no import errors
+- **Testing:** Verify all folders exist, no import errors
 
 ---
 
 #### **Task 1.3: Express Backend Server Setup**
-- **Description:** Create Express server with enhanced capabilities
+- **Description:** Create lightweight local Express server for JSON file I/O
+- **File:** `server.js`
 - **Implementation:**
   ```javascript
-  // src/backend/index.js
   const express = require('express');
-  const app = express();
+  const cors = require('cors');
+  const path = require('path');
+  const fs = require('fs');
   
+  const app = express();
+  app.use(cors());
   app.use(express.json());
   app.use(express.static('uploads'));
   
-  app.listen(3000, () => {
-    console.log('Backend API running on port 3000');
+  const dataDir = path.join(__dirname, 'data');
+  
+  // Ensure data directory exists
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  
+  // Example route
+  app.get('/api/customers', (req, res) => {
+    const filePath = path.join(dataDir, 'customers.json');
+    if (fs.existsSync(filePath)) {
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      res.json(data.customers || []);
+    } else {
+      res.json([]);
+    }
+  });
+  
+  app.listen(5000, () => {
+    console.log('Local Express server running on port 5000');
   });
   ```
-- **Deliverable:** Express server starts on port 3000 when app launches
-- **Testing:** Check logs show "Backend API running on port 3000"
+- **Deliverable:** Express server starts and serves data
+- **Testing:** 
+  - `npm run server` → Server starts on port 5000
+  - Open browser console, check no CORS errors
 
 ---
 
-#### **Task 1.4: IPC Communication Bridge - Enhanced**
-- **Description:** Set up secure IPC with new channels for v2.0
-- **New IPC Channels:**
+#### **Task 1.4: Pinia State Management Setup**
+- **Description:** Set up centralized state management
+- **File:** `src/stores/customerStore.js` (main store example)
+- **Setup Pinia:**
   ```javascript
-  'add-address', 'update-address', 'delete-address', 'get-addresses'
-  'add-bank-account', 'update-bank-account', 'delete-bank-account'
-  'upload-document', 'process-ocr', 'delete-document'
-  'add-website', 'update-website', 'delete-website', 'get-websites'
-  'get-activity-timeline'
+  // src/main.js
+  import { createPinia } from 'pinia'
+  import App from './App.vue'
+  import { createApp } from 'vue'
+  
+  const app = createApp(App)
+  app.use(createPinia())
+  app.mount('#app')
   ```
-- **Deliverable:** IPC communication tested and working
-- **Testing:** React can call all new IPC channels and get responses
+- **Create stores:**
+  - customerStore.js (customers state)
+  - addressStore.js (addresses state)
+  - bankStore.js (bank accounts state)
+  - documentStore.js (documents state)
+  - settingsStore.js (app settings state)
+  - timelineStore.js (activity timeline state)
+  - auditStore.js (audit logs state)
+  - educationStore.js (education records state)
+- **Each store includes:**
+  - state: data structure
+  - getters: computed properties
+  - actions: async operations
+- **Deliverable:** All 8 Pinia stores created and working
+- **Testing:** Store can dispatch actions and update state
 
 ---
 
-### **Sprint 2: Enhanced Data Layer (Days 3-4)**
+### **Sprint 2: Data Layer & JSON File Management (Days 3-4)**
 
-#### **Task 2.1: Enhanced CSV Service**
-- **Description:** Update CSVService for multi-table operations
-- **File:** `src/backend/services/CSVService.js` (Enhanced)
-- **New Functions:**
+#### **Task 2.1: File Service for JSON Operations**
+- **Description:** Service to read/write JSON files from Express backend
+- **File:** `src/services/fileService.js`
+- **Functions:**
   ```javascript
-  async readAddresses()
-  async writeAddresses(data)
-  async readBankAccounts()
-  async writeBankAccounts(data)
-  async readDocuments()
-  async writeDocuments(data)
-  async readWebsites()
-  async writeWebsites(data)
-  async readTimeline()
-  async writeTimeline(data)
+  async readCustomersJSON()
+  async writeCustomersJSON(data)
+  async readSettingsJSON()
+  async writeSettingsJSON(data)
+  async readWebsitesJSON()
+  async writeWebsitesJSON(data)
+  async readTimelineJSON()
+  async writeTimelineJSON(data)
+  async readAuditLogsJSON()
+  async writeAuditLogsJSON(data)
+  async backupAllData()           // Create backup.json
+  async restoreFromBackup(data)   // Restore from backup
   ```
-- **Deliverable:** CSVService handles all new CSV files
-- **Testing:** Can read/write all CSV files correctly
+- **Deliverable:** File operations working
+- **Testing:** Can read/write JSON files successfully
 
 ---
 
-#### **Task 2.2: Enhanced Data Models**
-- **Description:** Define data structures for v2.0 features
-- **New Models:**
-  - `src/backend/models/Address.js`
-  - `src/backend/models/BankAccount.js`
-  - `src/backend/models/Document.js`
-  - `src/backend/models/Website.js`
-  - `src/backend/models/Timeline.js`
-- **Each model includes:** validation, schema, methods
-- **Deliverable:** All data models with validation rules
+#### **Task 2.2: API Service for Express Communication**
+- **Description:** Centralized API communication from Vue to Express
+- **File:** `src/services/api.js`
+- **Implementation:**
+  ```javascript
+  const API_URL = 'http://localhost:5000/api'
+  
+  export async function get(endpoint) {
+    const response = await fetch(`${API_URL}${endpoint}`);
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    return response.json();
+  }
+  
+  export async function post(endpoint, data) {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    return response.json();
+  }
+  
+  export async function put(endpoint, data) {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    return response.json();
+  }
+  
+  export async function delete_(endpoint) {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    return response.json();
+  }
+  ```
+- **Deliverable:** API service working
+- **Testing:** Can make GET/POST/PUT/DELETE requests to Express
+
+---
+
+#### **Task 2.3: Validators & Constants**
+- **Description:** Data validation and app constants
+- **Files:** 
+  - `src/utils/validators.js` (validation functions)
+  - `src/utils/constants.js` (app constants)
+- **Validators:**
+  ```javascript
+  validateAadhaar(value)     // 12 digits
+  validatePAN(value)         // PAN format
+  validateIFSC(value)        // IFSC format
+  validateEmail(email)       // Email format
+  validatePhone(phone)       // 10 digits
+  validateAge(age)           // 1-120
+  validateLanguage(lang)     // Enum
+  validateAddressType(type)  // Predefined types
+  validateCasteNumber(num)   // Optional format
+  ```
+- **Constants:**
+  ```javascript
+  export const LANGUAGES = ['English', 'Hindi', 'Bengali', ...]
+  export const RELIGIONS = ['Hindu', 'Muslim', 'Christian', ...]
+  export const MARITAL_STATUSES = ['Single', 'Married', ...]
+  export const CASTES = ['General', 'OBC', 'SC', 'ST', 'Other']
+  export const BLOOD_GROUPS = ['A+', 'A-', 'B+', ...]
+  export const ADDRESS_TYPES = ['Residential', 'Permanent', 'Office']
+  export const DOCUMENT_TYPES = ['Aadhaar', 'Voter', 'PAN', ...]
+  export const STATUSES = ['Active', 'Inactive', 'Not Interested']
+  ```
+- **Deliverable:** All validators and constants ready
 - **Testing:** Validation catches invalid data
 
 ---
 
-#### **Task 2.3: Validation Utilities - Enhanced**
-- **Description:** Add new validators for v2.0 fields
-- **File:** `src/backend/utils/validators.js` (Enhanced)
-- **New Functions:**
+### **Sprint 3: Express Routes - Customer CRUD (Days 5-6)**
+
+#### **Task 3.1: Customer Routes**
+- **Description:** Express routes for customer CRUD operations
+- **File:** `server.js` (or separate `routes/customers.js`)
+- **Routes:**
   ```javascript
-  validateAadhaar(aadhaar)         // 12 digits
-  validatePAN(pan)                 // PAN format
-  validateIFSC(ifsc)               // IFSC format
-  validateAccountNumber(acct)      // Alphanumeric
-  validateLanguage(lang)           // Enum validation
-  validateAddressType(type)        // Predefined types
-  validateCasteNumber(caste)       // Optional format
-  ```
-- **Deliverable:** All validators working
-- **Testing:** Valid/invalid data passes/fails appropriately
-
----
-
-### **Sprint 3: Customer CRUD API - Enhanced (Days 5-7)**
-
-#### **Task 3.1: Enhanced Customer Routes**
-- **Description:** Update CRUD endpoints for v2.0 fields
-- **File:** `src/backend/routes/customers.js` (Enhanced)
-- **Updated Endpoints:**
-  ```
-  POST   /api/customers              (Create with nested data)
-  GET    /api/customers              (List all)
-  GET    /api/customers/:id          (Get with all nested data)
-  PUT    /api/customers/:id          (Update customer + addresses + banks)
-  PUT    /api/customers/:id/status   (Update status only)
-  DELETE /api/customers/:id          (Delete customer)
-  GET    /api/customers/search?q=... (Search by name/phone/email)
-  ```
-- **Deliverable:** All CRUD endpoints working with nested data
-- **Testing:** Create customer with multiple addresses and banks
-
----
-
-#### **Task 3.2: Enhanced Customer Service**
-- **Description:** Handle v2.0 validation and multi-table operations
-- **File:** `src/backend/services/CustomerService.js` (Enhanced)
-- **New Functions:**
-  ```javascript
-  async createCustomerWithDetails(customer, addresses, bankAccounts)
-  async updateCustomerWithDetails(id, customer, addresses, bankAccounts)
-  async getCustomerWithAllDetails(id)  // Returns customer + addresses + banks + education
-  async maskAadhaar(aadhaarNo)          // Mask display: XXXX-XXXX-1234
-  ```
-- **Deliverable:** Service handles complex multi-table operations
-- **Testing:** Create/update customer with nested data, verify all saved correctly
-
----
-
-#### **Task 3.3: Address Service & Routes**
-- **Description:** CRUD for multiple addresses per customer
-- **File:** 
-  - `src/backend/services/AddressService.js`
-  - `src/backend/routes/addresses.js`
-- **Endpoints:**
-  ```
-  POST   /api/addresses              (Add address)
-  GET    /api/addresses/:customerId  (Get all addresses for customer)
-  PUT    /api/addresses/:id          (Update address)
-  DELETE /api/addresses/:id          (Delete address)
-  PUT    /api/addresses/:id/primary  (Set as primary)
-  ```
-- **Deliverable:** Address management working
-- **Testing:** Add multiple addresses, set primary, update, delete
-
----
-
-#### **Task 3.4: Bank Account Service & Routes**
-- **Description:** CRUD for multiple bank accounts per customer
-- **File:**
-  - `src/backend/services/BankAccountService.js`
-  - `src/backend/routes/bankAccounts.js`
-- **Endpoints:**
-  ```
-  POST   /api/bank-accounts          (Add account)
-  GET    /api/bank-accounts/:customerId (Get all accounts for customer)
-  PUT    /api/bank-accounts/:id      (Update account)
-  DELETE /api/bank-accounts/:id      (Delete account)
-  PUT    /api/bank-accounts/:id/primary (Set as primary)
-  ```
-- **Deliverable:** Bank account management working
-- **Testing:** Add multiple accounts, set primary, update, delete
-
----
-
-#### **Task 3.5: Enhanced Education Service**
-- **Description:** Add Admit Number and Registration Number fields
-- **File:** `src/backend/services/EducationService.js` (Enhanced)
-- **New Fields:**
-  - admit_number (text)
-  - registration_number (text)
-- **Deliverable:** Education records with new fields
-- **Testing:** Can save/retrieve admit and reg numbers
-
----
-
-### **Sprint 4: OCR Engine Integration (Days 8-10)** ⭐ NEW
-
-#### **Task 4.1: Tesseract.js Integration**
-- **Description:** Set up OCR engine for document processing
-- **Installation:** `npm install tesseract.js`
-- **Test Script:**
-  ```javascript
-  const Tesseract = require('tesseract.js');
-  const { createWorker } = Tesseract;
+  // GET all customers
+  app.get('/api/customers', (req, res) => {
+    const data = readJSON('customers.json');
+    res.json(data.customers || []);
+  });
   
-  const worker = await createWorker('eng');
-  const result = await worker.recognize('path/to/image.jpg');
-  const text = result.data.text;
-  await worker.terminate();
+  // GET single customer with nested data
+  app.get('/api/customers/:id', (req, res) => {
+    const data = readJSON('customers.json');
+    const customer = data.customers.find(c => c.id === req.params.id);
+    res.json(customer || {});
+  });
+  
+  // POST new customer
+  app.post('/api/customers', (req, res) => {
+    const data = readJSON('customers.json');
+    const newCustomer = {
+      id: `CUST_${Date.now()}`,
+      ...req.body,
+      created_date: new Date().toISOString(),
+      last_modified: new Date().toISOString()
+    };
+    data.customers.push(newCustomer);
+    writeJSON('customers.json', data);
+    addAuditLog('customer_created', newCustomer.id);
+    addActivity(newCustomer.id, newCustomer.name, 'customer_added');
+    res.json(newCustomer);
+  });
+  
+  // PUT update customer
+  app.put('/api/customers/:id', (req, res) => {
+    const data = readJSON('customers.json');
+    const index = data.customers.findIndex(c => c.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Not found' });
+    data.customers[index] = { ...data.customers[index], ...req.body, last_modified: new Date().toISOString() };
+    writeJSON('customers.json', data);
+    addAuditLog('customer_updated', req.params.id);
+    res.json(data.customers[index]);
+  });
+  
+  // PUT update status
+  app.put('/api/customers/:id/status', (req, res) => {
+    const data = readJSON('customers.json');
+    const customer = data.customers.find(c => c.id === req.params.id);
+    if (!customer) return res.status(404).json({ error: 'Not found' });
+    customer.status = req.body.status;
+    customer.last_modified = new Date().toISOString();
+    writeJSON('customers.json', data);
+    addAuditLog('status_changed', req.params.id, { status: req.body.status });
+    addActivity(req.params.id, customer.name, 'status_changed');
+    res.json(customer);
+  });
+  
+  // DELETE customer
+  app.delete('/api/customers/:id', (req, res) => {
+    const data = readJSON('customers.json');
+    const index = data.customers.findIndex(c => c.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Not found' });
+    const deleted = data.customers.splice(index, 1);
+    writeJSON('customers.json', data);
+    addAuditLog('customer_deleted', req.params.id);
+    addActivity(req.params.id, deleted[0].name, 'customer_deleted');
+    res.json({ success: true });
+  });
+  
+  // Search customers
+  app.get('/api/customers/search', (req, res) => {
+    const query = req.query.q.toLowerCase();
+    const data = readJSON('customers.json');
+    const results = data.customers.filter(c =>
+      c.name.toLowerCase().includes(query) ||
+      c.phone.includes(query) ||
+      c.email.toLowerCase().includes(query)
+    );
+    res.json(results);
+  });
   ```
-- **Deliverable:** Tesseract.js installed and tested
-- **Testing:** Can recognize text from sample document image
+- **Deliverable:** All customer routes working
+- **Testing:** Create, read, update, delete customers via API
+
+---
+
+#### **Task 3.2: Address Routes**
+- **Description:** Routes for address CRUD
+- **File:** `server.js` (add address routes)
+- **Routes:**
+  ```
+  POST   /api/addresses
+  GET    /api/addresses/:customerId
+  PUT    /api/addresses/:id
+  DELETE /api/addresses/:id
+  PUT    /api/addresses/:id/primary
+  ```
+- **Deliverable:** Address routes working
+- **Testing:** Can add, edit, delete addresses for customer
+
+---
+
+#### **Task 3.3: Bank Account Routes**
+- **Description:** Routes for bank account CRUD
+- **Routes:**
+  ```
+  POST   /api/bank-accounts
+  GET    /api/bank-accounts/:customerId
+  PUT    /api/bank-accounts/:id
+  DELETE /api/bank-accounts/:id
+  PUT    /api/bank-accounts/:id/primary
+  ```
+- **Deliverable:** Bank account routes working
+- **Testing:** Can manage multiple bank accounts
+
+---
+
+### **Sprint 4: OCR Engine Integration (Days 7-9)** ⭐ NEW
+
+#### **Task 4.1: Tesseract.js Integration in Browser**
+- **Description:** Set up OCR engine for client-side text extraction
+- **Installation:** `npm install tesseract.js`
+- **Test Script (in Vue component or console):**
+  ```javascript
+  import Tesseract from 'tesseract.js';
+  
+  async function testOCR() {
+    const { data: { text } } = await Tesseract.recognize(
+      imageElement,  // or image path
+      'eng'
+    );
+    console.log('Extracted text:', text);
+  }
+  ```
+- **Deliverable:** Tesseract.js working in browser
+- **Testing:** Upload sample image, extract text successfully
 
 ---
 
 #### **Task 4.2: OCR Service - Document Type Extraction**
 - **Description:** Service to extract data based on document type
-- **File:** `src/backend/services/OCRService.js`
+- **File:** `src/services/ocrService.js`
 - **Functions:**
   ```javascript
   async extractAadhaar(imagePath)        // Extract: no, name, dob, address
@@ -269,36 +395,52 @@ This document provides a step-by-step implementation guide for building Customer
   async extractEducationCert(imagePath)  // Extract: cert_no, board, score
   
   async processDocumentOCR(imagePath, documentType)
-    // Generic function that calls appropriate extractor
     // Returns: { extractedData, confidence, message }
   ```
 - **Implementation:**
   ```javascript
-  async processDocumentOCR(imagePath, documentType) {
-    const worker = await createWorker('eng');
-    const result = await worker.recognize(imagePath);
-    const text = result.data.text;
-    const confidence = result.data.confidence;
+  import Tesseract from 'tesseract.js';
+  
+  export async function processDocumentOCR(imagePath, documentType) {
+    const worker = await Tesseract.createWorker('eng');
     
-    let extractedData = {};
-    
-    if (documentType === 'Aadhaar') {
-      extractedData = {
-        aadhaar_no: extractRegex(text, /\d{4}\s\d{4}\s\d{4}/),
-        name: extractName(text),
-        dob: extractDate(text),
-        address: extractAddress(text)
+    try {
+      const result = await worker.recognize(imagePath);
+      const text = result.data.text;
+      const confidence = result.data.confidence;
+      
+      let extractedData = {};
+      
+      if (documentType === 'Aadhaar') {
+        extractedData = {
+          aadhaar_no: extractAadhaarNumber(text),
+          name: extractName(text),
+          dob: extractDateOfBirth(text),
+          address: extractAddress(text)
+        };
+      } else if (documentType === 'PAN') {
+        extractedData = {
+          pan_no: extractPANNumber(text)
+        };
+      }
+      // ... handle other document types
+      
+      await worker.terminate();
+      
+      return {
+        extractedData,
+        confidence,
+        message: `Successfully extracted: Aadhaar No (${extractedData.aadhaar_no}), Name (${extractedData.name}), DOB (${extractedData.dob})`
       };
+    } catch (error) {
+      await worker.terminate();
+      throw error;
     }
-    // ... handle other document types
-    
-    await worker.terminate();
-    
-    return {
-      extractedData,
-      confidence: confidence > 90,
-      message: `Successfully extracted: Aadhaar No (${extractedData.aadhaar_no}), Name (${extractedData.name})`
-    };
+  }
+  
+  function extractAadhaarNumber(text) {
+    const match = text.match(/\d{4}\s\d{4}\s\d{4}/);
+    return match ? match[0] : '';
   }
   ```
 - **Deliverable:** OCR extraction working for all document types
@@ -306,13 +448,11 @@ This document provides a step-by-step implementation guide for building Customer
 
 ---
 
-#### **Task 4.3: OCR Routes**
+#### **Task 4.3: OCR Routes in Express**
 - **Description:** API endpoints for OCR processing
-- **File:** `src/backend/routes/ocr.js`
-- **Endpoints:**
+- **Routes:**
   ```
   POST /api/ocr/process       (Process document OCR)
-  POST /api/ocr/test          (Test OCR with confidence)
   GET  /api/ocr/settings      (Get OCR settings)
   ```
 - **Deliverable:** OCR routes working
@@ -320,126 +460,177 @@ This document provides a step-by-step implementation guide for building Customer
 
 ---
 
-### **Sprint 5: Document Vault with OCR (Days 11-12)**
+### **Sprint 5: Document Vault with OCR (Days 10-11)**
 
-#### **Task 5.1: Document Service**
-- **Description:** Manage document uploads and OCR extraction
-- **File:** `src/backend/services/DocumentService.js`
-- **Functions:**
+#### **Task 5.1: Document Upload Route**
+- **Description:** Express route to handle file uploads
+- **Route:**
   ```javascript
-  async uploadDocument(customerId, file, documentType)
-  async processDocumentOCR(documentId, documentType)
-  async updateDocumentWithOCRData(documentId, ocrData, confidence)
-  async getDocumentsForCustomer(customerId)
-  async deleteDocument(documentId)
-  async addCustomDocumentType(customerId, typeName)
+  app.post('/api/documents/upload', upload.single('file'), (req, res) => {
+    const customerId = req.body.customerId;
+    const documentType = req.body.documentType;
+    const filePath = req.file.path;
+    
+    // Save document record to customers.json
+    const data = readJSON('customers.json');
+    const customer = data.customers.find(c => c.id === customerId);
+    
+    const document = {
+      id: `DOC_${Date.now()}`,
+      type: documentType,
+      file_name: req.file.filename,
+      file_path: filePath,
+      upload_date: new Date().toISOString()
+    };
+    
+    if (!customer.documents) customer.documents = [];
+    customer.documents.push(document);
+    writeJSON('customers.json', data);
+    
+    addAuditLog('document_uploaded', customerId, { document_type: documentType });
+    addActivity(customerId, customer.name, 'document_uploaded');
+    
+    res.json(document);
+  });
   ```
-- **Deliverable:** Document management with OCR integration
-- **Testing:** Upload document, process OCR, save extracted data
+- **Deliverable:** Document upload working
+- **Testing:** Upload document, file saved to uploads/documents/
 
 ---
 
-#### **Task 5.2: Document Routes**
-- **Description:** API for document operations
-- **File:** `src/backend/routes/documents.js`
-- **Endpoints:**
+#### **Task 5.2: OCR Processing Route**
+- **Description:** Route to process OCR on uploaded document
+- **Route:**
+  ```javascript
+  app.post('/api/documents/:id/ocr', async (req, res) => {
+    const documentId = req.params.id;
+    const documentType = req.body.documentType;
+    
+    try {
+      const ocrResult = await ocrService.processDocumentOCR(filePath, documentType);
+      
+      if (ocrResult.confidence < 90) {
+        return res.json({
+          ...ocrResult,
+          warning: 'Low confidence, please review extracted data'
+        });
+      }
+      
+      // Save OCR data to document record
+      const data = readJSON('customers.json');
+      const customer = data.customers.find(c => 
+        c.documents && c.documents.find(d => d.id === documentId)
+      );
+      const document = customer.documents.find(d => d.id === documentId);
+      document.ocr_extracted = ocrResult.extractedData;
+      document.ocr_confidence = ocrResult.confidence;
+      writeJSON('customers.json', data);
+      
+      res.json(ocrResult);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
   ```
-  POST   /api/documents/upload        (Upload document)
-  POST   /api/documents/:id/ocr       (Process OCR)
-  GET    /api/documents/:customerId   (Get customer documents)
-  PUT    /api/documents/:id           (Update document)
-  DELETE /api/documents/:id           (Delete document)
-  ```
-- **Deliverable:** Document routes working
-- **Testing:** Upload, OCR process, retrieve documents
+- **Deliverable:** OCR processing route working
+- **Testing:** Process OCR on uploaded document
 
 ---
 
-#### **Task 5.3: Document Vault UI Component**
+#### **Task 5.3: Document Vault Vue Component**
 - **Description:** Frontend for document management with OCR
-- **Component:** `src/renderer/components/DocumentVault.jsx`
+- **Component:** `src/components/DocumentVault.vue`
 - **Features:**
   - Document type selector (predefined + custom)
   - File upload input
-  - Show uploaded documents list
+  - Show uploaded documents list with thumbnails
   - OCR extraction display when document processed
   - Editable extracted data form
   - Delete document button
   - Show confidence score with extraction
+  - Auto-populate customer fields from OCR extraction
 - **Deliverable:** Document vault UI functional
 - **Testing:** Upload document, see OCR extraction, edit, save
 
 ---
 
-### **Sprint 6: Important Websites Management (Days 13-14)**
+### **Sprint 6: Important Websites Management (Days 12-13)**
 
-#### **Task 6.1: Website Service**
-- **Description:** Manage configurable websites list
-- **File:** `src/backend/services/WebsiteService.js`
-- **Functions:**
+#### **Task 6.1: Website Routes**
+- **Description:** Express routes for website management
+- **Routes:**
   ```javascript
-  async getWebsites()              // Get all websites
-  async addWebsite(name, url)      // Add custom website
-  async updateWebsite(id, name, url) // Update website
-  async deleteWebsite(id)          // Delete website
-  async getDefaultWebsites()       // Load defaults if not set
-  ```
-- **Default Websites (stored in important_websites.json):**
-  1. Aadhaar - https://myaadhaar.uidai.gov.in/
-  2. CSC - https://digitalseva.csc.gov.in/
-  3. Voter - https://voters.eci.gov.in/login
-  4. Ration - https://food.wb.gov.in/
-- **Deliverable:** Website management working
-- **Testing:** Can add, edit, delete websites
-
----
-
-#### **Task 6.2: Website Routes**
-- **Description:** API for website management
-- **File:** `src/backend/routes/websites.js`
-- **Endpoints:**
-  ```
-  GET    /api/websites              (Get all)
-  POST   /api/websites              (Add)
-  PUT    /api/websites/:id          (Update)
-  DELETE /api/websites/:id          (Delete)
+  app.get('/api/websites', (req, res) => {
+    const data = readJSON('important_websites.json');
+    res.json(data || []);
+  });
+  
+  app.post('/api/websites', (req, res) => {
+    const data = readJSON('important_websites.json');
+    const website = {
+      id: `web_${Date.now()}`,
+      ...req.body,
+      created_date: new Date().toISOString()
+    };
+    data.push(website);
+    writeJSON('important_websites.json', data);
+    addAuditLog('website_added', null, { website: req.body.name });
+    res.json(website);
+  });
+  
+  app.put('/api/websites/:id', (req, res) => {
+    const data = readJSON('important_websites.json');
+    const index = data.findIndex(w => w.id === req.params.id);
+    data[index] = { ...data[index], ...req.body };
+    writeJSON('important_websites.json', data);
+    res.json(data[index]);
+  });
+  
+  app.delete('/api/websites/:id', (req, res) => {
+    const data = readJSON('important_websites.json');
+    const index = data.findIndex(w => w.id === req.params.id);
+    data.splice(index, 1);
+    writeJSON('important_websites.json', data);
+    res.json({ success: true });
+  });
   ```
 - **Deliverable:** Website routes working
 - **Testing:** CRUD operations on websites
 
 ---
 
-#### **Task 6.3: Website Management UI**
+#### **Task 6.2: Website Manager Vue Component**
 - **Description:** Settings page component to manage websites
-- **Component:** `src/renderer/components/WebsiteManager.jsx`
+- **Component:** `src/components/WebsiteManager.vue`
 - **Features:**
   - List of all websites with edit/delete buttons
   - Add new website form (Name + URL)
   - Edit website modal
   - Delete confirmation
+  - Load default websites if not set
 - **Deliverable:** Website manager UI functional
 - **Testing:** Add, edit, delete websites from settings
 
 ---
 
-#### **Task 6.4: Important Web Links Tab in Customer Detail**
-- **Description:** Display configured websites as clickable links
-- **Component:** New tab in `src/renderer/pages/CustomerDetailPage.jsx`
+#### **Task 6.3: Important Web Links Tab**
+- **Description:** Display websites in customer detail page
+- **Component:** Tab in `CustomerDetailPage.vue`
 - **Features:**
   - Display list of websites from settings
-  - Clickable links that open in default browser
-  - Show website icon (if available)
+  - Clickable links that open in new tab
+  - Show website name and URL
 - **Deliverable:** Website links tab working
-- **Testing:** Click link → opens in browser
+- **Testing:** Click link → opens in browser tab
 
 ---
 
-### **Sprint 7: Frontend - Enhanced Customer Profile (Days 15-16)**
+### **Sprint 7: Frontend - Enhanced Customer Profile (Days 14-15)**
 
-#### **Task 7.1: Enhanced Customer Personal Profile Component**
-- **Description:** Form for personal details with new v2.0 fields
-- **Component:** `src/renderer/components/CustomerPersonalProfile.jsx`
-- **Fields (organized in sections):**
+#### **Task 7.1: Customer Personal Profile Component**
+- **Description:** Form for personal details with new v2.1 fields
+- **Component:** `src/components/CustomerPersonalProfile.vue`
+- **Form Sections:**
   ```
   Basic Info:
   - Full Name, Father's Name, Mother's Name, DOB, Gender, Age
@@ -449,24 +640,20 @@ This document provides a step-by-step implementation guide for building Customer
   - Religion (Dropdown)
   
   Marital Info:
-  - Marital Status (Dropdown: Single, Married, Divorced, Widowed)
+  - Marital Status (Dropdown)
   - Spouse Name (Optional)
   
   Contact:
   - Mobile Number, Email
   
   Identity Documents:
-  - Aadhaar No (12 digits, masked XXXX-XXXX-1234, optional)
-  - Voter ID (alphanumeric, optional)
-  - Ration Card No (alphanumeric, optional)
-  - PAN Number (optional)
+  - Aadhaar No (12 digits, masked, optional)
+  - Voter ID, Ration Card No, PAN Number (all optional)
   
   Caste Information:
-  - Caste Dropdown (General, OBC, SC, ST, Other)
-  - If Other: Show text input for Certificate Number
-  - Date of Issue (date picker)
+  - Caste Dropdown with conditional fields
   
-  Blood Group (Dropdown, optional)
+  Blood Group (Optional)
   ```
 - **Deliverable:** Personal profile form complete
 - **Testing:** Fill form, validate all fields, save successfully
@@ -475,12 +662,12 @@ This document provides a step-by-step implementation guide for building Customer
 
 #### **Task 7.2: Address Manager Component**
 - **Description:** UI to manage multiple addresses per customer
-- **Component:** `src/renderer/components/AddressManager.jsx`
+- **Component:** `src/components/AddressManager.vue`
 - **Features:**
   - List of existing addresses in table
   - Add new address button → opens modal
   - Modal fields: Type, Street, State, Block, Gram Station, Post Office, Village, Pin Code
-  - Mark as Primary checkbox (only one can be primary)
+  - Mark as Primary checkbox
   - Edit button for each address
   - Delete button for each address
 - **Deliverable:** Address manager working
@@ -490,12 +677,12 @@ This document provides a step-by-step implementation guide for building Customer
 
 #### **Task 7.3: Bank Account Manager Component**
 - **Description:** UI to manage multiple bank accounts per customer
-- **Component:** `src/renderer/components/BankAccountManager.jsx`
+- **Component:** `src/components/BankAccountManager.vue`
 - **Features:**
   - List of existing accounts in table
   - Add new account button → opens modal
   - Modal fields: Bank Name, Branch, Account Number, IFSC Code, Account Type
-  - Mark as Primary checkbox (only one can be primary)
+  - Mark as Primary checkbox
   - Edit button for each account
   - Delete button for each account
   - Passbook upload button with OCR extraction
@@ -506,9 +693,9 @@ This document provides a step-by-step implementation guide for building Customer
 
 #### **Task 7.4: Activity Timeline Component**
 - **Description:** Display recent activities in sidebar
-- **Component:** `src/renderer/components/ActivityTimeline.jsx`
+- **Component:** `src/components/ActivityTimeline.vue`
 - **Features:**
-  - Show last 10 activities (configurable in settings)
+  - Show last N activities (configurable, default 10)
   - Format: "Customer Name - Action - Date"
   - Actions: Customer Added, Updated, Deleted, Bio-data Generated, Document Uploaded
   - Clickable to navigate to customer
@@ -518,17 +705,17 @@ This document provides a step-by-step implementation guide for building Customer
 
 ---
 
-### **Sprint 8: Frontend - Photo, Bio-Data, Education (Days 17-18)**
+### **Sprint 8: Photo, Bio-Data, Education (Days 16-17)**
 
 #### **Task 8.1: Photo Upload with Crop Tool**
 - **Description:** Photo management with built-in crop
-- **Component:** `src/renderer/components/PhotoUploader.jsx`
+- **Component:** `src/components/PhotoUploader.vue`
 - **Features:**
   - File input (JPG, PNG only)
   - Preview of selected image
-  - Launch crop tool
+  - vue-cropper integration
   - Drag, resize, rotate image
-  - Save cropped photo
+  - Save cropped photo to uploads/photos/
 - **Deliverable:** Photo upload and crop working
 - **Testing:** Upload photo, crop, save
 
@@ -536,52 +723,40 @@ This document provides a step-by-step implementation guide for building Customer
 
 #### **Task 8.2: Enhanced Education Component**
 - **Description:** Education records with Admit and Registration Numbers
-- **Component:** `src/renderer/components/EducationForm.jsx`
+- **Component:** `src/components/EducationForm.vue`
 - **Per Education Record:**
-  - Education Level (Dropdown)
-  - When level selected, show fields:
-    - Course/Stream, Institution, Year, Board/University
-    - **Admit Number (text)**
-    - **Registration Number (text)**
-    - Total Marks, Obtained Marks, Percentage (auto-calculated), Grade
-    - Document upload with OCR extraction
+  - Education Level, Course/Stream, Institution, Year, Board/University
+  - **Admit Number (new field)**
+  - **Registration Number (new field)**
+  - Total Marks, Obtained Marks, Percentage (auto-calculated), Grade
+  - Document upload with OCR extraction
 - **Deliverable:** Education form with new fields
 - **Testing:** Add education with admit and reg numbers
 
 ---
 
-#### **Task 8.3: Customizable Bio-Data Generator**
-- **Description:** Settings to select which sections to include
-- **Component:** `src/renderer/components/BioDataGenerator.jsx` (Enhanced)
+#### **Task 8.3: Bio-Data Generator Component**
+- **Description:** Generate PDF/HTML bio-data with customizable sections
+- **Component:** `src/components/BioDataGenerator.vue`
 - **Features:**
   - Select customer from dropdown
-  - Checkboxes to select which sections to include:
-    - ☑️ Personal Details
-    - ☑️ Full Name
-    - ☑️ DOB
-    - ☐ Father's/Mother's Name
-    - ☑️ Marital Status
-    - ☑️ Education & Qualifications
-    - ☑️ Address Details
-    - ☑️ Important Web Links
-    - ☑️ Aadhaar (UIDAI)
-    - (etc.)
-  - Select format (PDF or Word)
+  - Checkboxes to select which sections to include
+  - Select format (PDF or HTML)
   - Generate button
-  - User chooses save location
+  - Browser downloads file to Downloads folder
 - **Deliverable:** Customizable bio-data working
 - **Testing:** Generate with different section selections
 
 ---
 
-### **Sprint 9: Customer Directory with Status (Days 19-20)**
+### **Sprint 9: Customer Directory with Status (Days 18-19)**
 
 #### **Task 9.1: Enhanced Customer List View**
 - **Description:** Display customers with status tracking
-- **Component:** `src/renderer/components/CustomerList.jsx` (Enhanced)
+- **Component:** `src/components/CustomerList.vue` or page `CustomersPage.vue`
 - **Features:**
-  - Table columns: ID, Name, Phone, Address (Village Name), Status, Documents, Actions
-  - **Status column:** Dropdown selector (Active, Inactive, Not Interested)
+  - Table: ID, Name, Phone, Address (Village), Status, Actions
+  - **Status column:** Dropdown (Active, Inactive, Not Interested)
   - Sortable by any column
   - Pagination (50 per page)
   - Click row to view details
@@ -597,276 +772,396 @@ This document provides a step-by-step implementation guide for building Customer
 
 #### **Task 9.2: Dashboard with Timeline**
 - **Description:** Dashboard showing stats and recent activity
-- **Component:** `src/renderer/pages/HomePage.jsx` (Enhanced)
+- **Page:** `src/pages/HomePage.vue`
 - **Features:**
   - Total customers count
   - Recently added customers
   - Activity timeline (last 10 activities)
-  - Quick action buttons (Add Customer, View Directory, Bio-Data Generator, Settings)
+  - Quick action buttons (Add Customer, View Directory, Bio-Data, Settings)
+  - Stats cards (Active, Inactive, Total)
 - **Deliverable:** Dashboard with timeline functional
 - **Testing:** Dashboard displays stats and timeline correctly
 
 ---
 
-### **Sprint 10: Settings - OCR & Websites (Days 21-22)**
+### **Sprint 10: Settings - OCR, Websites, Backup (Days 20-21)**
 
 #### **Task 10.1: OCR Settings Component**
 - **Description:** Configure OCR in settings
-- **Component:** `src/renderer/components/OCRSettings.jsx`
+- **Component:** `src/components/OCRSettings.vue`
 - **Features:**
   - Toggle: Enable/Disable OCR globally
-  - Checkboxes for document types:
-    - ☑️ Aadhaar
-    - ☑️ Caste Certificate
-    - ☑️ PAN Card
-    - ☑️ Passbook
-    - ☑️ Voter ID
-    - ☑️ Ration Card
-    - ☑️ Education Certificates
-  - Confidence threshold slider (0-100%, set to 90%)
+  - Checkboxes for document types
+  - Confidence threshold slider (0-100%, default 90%)
   - Language dropdown (English only)
-  - Status indicator: "OCR Ready" / "OCR Disabled"
+  - Status indicator: "OCR Ready"
 - **Deliverable:** OCR settings component working
 - **Testing:** Toggle settings, verify applied globally
 
 ---
 
-#### **Task 10.2: Bio-Data Section Customization**
-- **Description:** Settings to select bio-data sections
-- **Component:** Part of Settings page
+#### **Task 10.2: Backup & Restore**
+- **Description:** Backup/restore all data as JSON
+- **Routes:**
+  ```javascript
+  app.post('/api/backup/create', (req, res) => {
+    const data = {
+      customers: readJSON('customers.json'),
+      websites: readJSON('important_websites.json'),
+      audit: readJSON('audit_logs.json'),
+      settings: readJSON('settings.json'),
+      timeline: readJSON('activity_timeline.json'),
+      backup_date: new Date().toISOString()
+    };
+    // Return as downloadable JSON
+    res.json(data);
+  });
+  
+  app.post('/api/backup/restore', (req, res) => {
+    const backup = req.body;
+    writeJSON('customers.json', backup.customers);
+    writeJSON('important_websites.json', backup.websites);
+    writeJSON('audit_logs.json', backup.audit);
+    writeJSON('settings.json', backup.settings);
+    writeJSON('activity_timeline.json', backup.timeline);
+    res.json({ success: true });
+  });
+  ```
+- **Component:** `src/components/BackupRestore.vue`
 - **Features:**
-  - Checkboxes for each section:
-    - Personal Details, Full Name, DOB, Father's/Mother's Name
-    - Marital Status, Education, Work Experience
-    - Address Details, Important Web Links, Aadhaar
-  - Save configuration
-  - Apply to future bio-data generation
-- **Deliverable:** Bio-data customization settings working
-- **Testing:** Configure sections, generate bio-data
+  - "Backup Now" button → downloads backup.json
+  - "Restore" button → upload backup file
+  - Confirmation dialog before restore
+  - Shows backup date
+- **Deliverable:** Backup & restore working
+- **Testing:** Backup, then restore, verify data
 
 ---
 
-#### **Task 10.3: Timeline Configuration**
-- **Description:** Settings for activity timeline
+#### **Task 10.3: Audit Log Viewer**
+- **Description:** View and filter audit logs
+- **Component:** `src/components/AuditLog.vue`
 - **Features:**
-  - Dropdown to select number of recent activities (5, 10, 15, 20)
-  - Save preference
-- **Deliverable:** Timeline configuration working
-- **Testing:** Change count, dashboard shows correct number
+  - Table of audit logs with timestamp, action, customer
+  - Filter by customer, action type
+  - Export to CSV
+  - Show timestamp, action, changes
+- **Deliverable:** Audit log viewer working
+- **Testing:** Perform action, see in audit logs
 
 ---
 
-#### **Task 10.4: Theme & Backup Settings**
-- **Description:** Existing settings (Phase 1) still functional
+#### **Task 10.4: Other Settings**
+- **Description:** Theme, timeline count, bio-data sections
 - **Features:**
   - Theme toggle (Light/Dark)
-  - Backup button
-  - Restore button
-  - Audit log viewer
+  - Timeline recent count (5, 10, 15, 20)
+  - Bio-data sections checkboxes
 - **Deliverable:** All settings working
-- **Testing:** Toggle theme, backup, restore, view audit logs
+- **Testing:** Toggle settings, verify applied
 
 ---
 
-### **Sprint 11: Bulk Import & Export (Days 23-24)**
+### **Sprint 11: Import, Export, Search (Days 22-23)**
 
-#### **Task 11.1: Enhanced Bulk Import**
-- **Description:** Import customers from CSV with v2.0 fields
-- **Component:** `src/renderer/components/ImportExport.jsx` (Enhanced)
+#### **Task 11.1: Bulk Import**
+- **Description:** Import customers from CSV file
+- **Component:** `src/components/ImportExport.vue`
 - **Features:**
-  - File input for CSV
-  - Validate file with new fields
+  - CSV file input
+  - Validate file with all fields
   - Detect duplicates
   - Show error summary
   - Import valid rows or cancel
   - Show success message with count
-- **Deliverable:** Import working with v2.0 fields
-- **Testing:** Import CSV with new fields
+- **Route:**
+  ```javascript
+  app.post('/api/import/csv', upload.single('file'), async (req, res) => {
+    const csv = require('csv-parser');
+    const fs = require('fs');
+    const customers = [];
+    
+    fs.createReadStream(req.file.path)
+      .pipe(csv())
+      .on('data', (row) => customers.push(row))
+      .on('end', () => {
+        // Process and save customers
+        res.json({ imported: customers.length });
+      });
+  });
+  ```
+- **Deliverable:** Import working
+- **Testing:** Import CSV with customers
 
 ---
 
-#### **Task 11.2: Enhanced Export**
-- **Description:** Export customers with v2.0 data
-- **Features:**
-  - CSV export: Include all new fields (aadhaar, caste, addresses, banks, etc.)
-  - Excel export: Include new fields with formatting
-  - Show success message with file location
-- **Deliverable:** Export working with v2.0 data
+#### **Task 11.2: CSV/Excel Export**
+- **Description:** Export all customers to CSV/Excel
+- **Routes:**
+  ```javascript
+  app.get('/api/export/csv', (req, res) => {
+    const data = readJSON('customers.json');
+    // Convert to CSV format
+    res.setHeader('Content-Type', 'text/csv');
+    res.attachment('customers.csv');
+    res.send(convertToCSV(data.customers));
+  });
+  
+  app.get('/api/export/excel', (req, res) => {
+    const data = readJSON('customers.json');
+    const workbook = xlsx.utils.json_to_sheet(data.customers);
+    // Send Excel file
+    res.attachment('customers.xlsx');
+    res.send(excelBuffer);
+  });
+  ```
+- **Deliverable:** Export working
 - **Testing:** Export CSV/Excel, open in programs
 
 ---
 
-### **Sprint 12: Audit Logging - Enhanced (Days 25-26)**
-
-#### **Task 12.1: Enhanced Audit Service**
-- **Description:** Log all v2.0 operations
-- **File:** `src/backend/services/AuditService.js` (Enhanced)
-- **Log all:**
-  - Customer create/update/delete
-  - Address add/update/delete
-  - Bank account add/update/delete
-  - Education add/update/delete
-  - Document upload + OCR extraction
-  - Status change
-  - Website customization
-  - Settings changes
-- **Deliverable:** All operations logged
-- **Testing:** Perform actions, check audit logs
+#### **Task 11.3: Search Functionality**
+- **Description:** Real-time search by name/phone/email
+- **Component:** `src/components/SearchBar.vue`
+- **Features:**
+  - Text input with real-time search
+  - Search by name, phone, email
+  - Show results as user types
+  - Click result to navigate to customer
+- **Route:** Already created in Task 3.1 (GET /api/customers/search)
+- **Deliverable:** Search working
+- **Testing:** Search for customers, see results
 
 ---
 
-#### **Task 12.2: Activity Timeline Service**
-- **Description:** Track recent activities
-- **File:** `src/backend/services/TimelineService.js` (New)
-- **Functions:**
+### **Sprint 12: Pinia Stores Implementation (Days 24-25)**
+
+#### **Task 12.1: Implement All 8 Pinia Stores**
+- **Description:** Complete state management for all features
+- **Stores to create:**
+  1. `customerStore.js` - Customers state & actions
+  2. `addressStore.js` - Addresses state & actions
+  3. `bankStore.js` - Bank accounts state & actions
+  4. `educationStore.js` - Education state & actions
+  5. `documentStore.js` - Documents state & actions
+  6. `settingsStore.js` - Settings state & actions
+  7. `timelineStore.js` - Activity timeline state & actions
+  8. `auditStore.js` - Audit logs state & actions
+
+- **Each store includes:**
   ```javascript
-  async addActivity(customerId, action, description)
-  async getRecentActivities(limit = 10)
-  async getActivitiesForCustomer(customerId)
+  state: { data array }
+  getters: { filter, search functions }
+  actions: { 
+    fetchData()
+    createRecord()
+    updateRecord()
+    deleteRecord()
+  }
   ```
-- **Deliverable:** Activity tracking working
-- **Testing:** Activities logged and retrieved correctly
+- **Deliverable:** All stores implemented and working
+- **Testing:** Stores update correctly, components render
 
 ---
 
-### **Sprint 13: Build & Package (Days 27-28)**
-
-#### **Task 13.1: Configure electron-builder**
-- **Description:** Set up .exe builder
-- **File:** `electron-builder.json`
-- **Configuration:** Similar to Phase 1
-- **Deliverable:** Build config ready
-- **Testing:** Config validates without errors
-
----
-
-#### **Task 13.2: Create App Icon**
-- **Description:** Professional app icon with org branding
-- **Files:** `public/icon.png`, `public/icon.ico`
-- **Deliverable:** Icons created and placed
-- **Testing:** Icon displays correctly
-
----
-
-#### **Task 13.3: Build .exe Installer**
-- **Description:** Generate Windows installer
-- **Command:** `npm run build:exe`
-- **Output:** `CustomerDataHub-2.0.0-Setup.exe`
-- **Installation Test:**
-  1. Run .exe on clean Windows PC
-  2. Complete installation
-  3. Test all v2.0 features:
-     - Create customer with multiple addresses/banks
-     - Upload document and process OCR
-     - Generate bio-data with selected sections
-     - Change customer status
-     - View activity timeline
-     - Configure websites and OCR settings
-  4. All features work
-- **Deliverable:** Working .exe installer
-- **Testing:** Install on Windows and test thoroughly
+#### **Task 12.2: Connect Components to Stores**
+- **Description:** Integrate Pinia stores with Vue components
+- **Process:**
+  1. Each component imports relevant store
+  2. Component calls store actions
+  3. Store updates state
+  4. Components re-render with new data
+- **Example:**
+  ```javascript
+  import { useCustomerStore } from '@/stores/customerStore'
+  
+  export default {
+    setup() {
+      const customerStore = useCustomerStore()
+      
+      const createCustomer = async (data) => {
+        await customerStore.createCustomer(data)
+      }
+      
+      return { customers: customerStore.customers, createCustomer }
+    }
+  }
+  ```
+- **Deliverable:** All components connected to stores
+- **Testing:** Components sync with stores
 
 ---
 
-#### **Task 13.4: Documentation & Release**
-- **Description:** Final documentation
-- **Files:**
-  - `README.md` (Updated for v2.0)
-  - `DEPLOYMENT.md`
-  - `USER_MANUAL.md`
-  - Release notes
+### **Sprint 13: Build & Polish (Days 26-28)**
+
+#### **Task 13.1: Vite Production Build**
+- **Description:** Build Vue app for production
+- **Command:** `npm run build`
+- **Output:** `dist/` folder with optimized app
+- **Testing:** Build succeeds without errors
+
+---
+
+#### **Task 13.2: Create README & Documentation**
+- **Description:** User guide and setup instructions
+- **File:** `README.md`
+- **Content:**
+  ```markdown
+  # Customer Data Hub v2.1
+  
+  ## Setup
+  1. npm install
+  2. npm run dev (in one terminal)
+  3. npm run server (in another terminal)
+  4. Open http://localhost:5173
+  
+  ## Features
+  - Full customer management
+  - OCR document extraction
+  - Bio-data generation
+  - Activity tracking
+  - Local data storage
+  
+  ## Data Location
+  All data stored in ./data/ folder
+  All files are JSON format
+  Portable - can copy entire folder
+  ```
 - **Deliverable:** Documentation complete
-- **Testing:** Follow README to build and run
+- **Testing:** Follow README to run app
+
+---
+
+#### **Task 13.3: Test All Features End-to-End**
+- **Description:** Complete testing of all v2.1 features
+- **Test Checklist:**
+  - [ ] Create customer with multiple addresses/banks
+  - [ ] Upload document and process OCR
+  - [ ] Generate bio-data with selected sections
+  - [ ] Change customer status
+  - [ ] View activity timeline
+  - [ ] Configure websites in settings
+  - [ ] Enable/disable OCR
+  - [ ] Backup and restore data
+  - [ ] Export to CSV/Excel
+  - [ ] Import from CSV
+  - [ ] Search by name/phone/email
+  - [ ] Toggle theme (light/dark)
+  - [ ] View audit logs
+  - [ ] All data in ./data/ folder (local)
+  - [ ] No internet errors
+- **Deliverable:** All features working
+- **Testing:** Complete end-to-end test
+
+---
+
+#### **Task 13.4: Performance Optimization**
+- **Description:** Optimize for faster loading and responsiveness
+- **Optimizations:**
+  - Lazy load components
+  - Image compression
+  - Code splitting
+  - Caching strategies
+  - Virtual scrolling for large lists
+- **Deliverable:** App performs well
+- **Testing:** 
+  - Load time < 2 seconds
+  - Search response < 100ms
+  - List with 1000 items loads smooth
 
 ---
 
 ---
 
-## ✅ Enhanced Quality Checklist
+## ✅ Quality Checklist
 
 Before marking any task complete:
 
-- [ ] Code follows project structure
+- [ ] Code follows Vue 3 + Express best practices
 - [ ] Error handling implemented
 - [ ] Logging added (audit trail)
 - [ ] Tested with sample data
 - [ ] No console errors
 - [ ] Follows existing code style
 - [ ] Comments added for complex logic
-- [ ] Dependencies installed and working
-- [ ] **NEW:** OCR confidence working
-- [ ] **NEW:** Multi-table operations coordinated
-- [ ] **NEW:** Activity timeline updating correctly
+- [ ] All dependencies installed
+- [ ] All tests pass
+- [ ] Responsive design working
+- [ ] Data persisted to JSON files
 
 ---
 
-## 🐛 Common Issues & Solutions - v2.0
+## 🐛 Common Issues & Solutions - v2.1
 
 | Issue | Solution |
 |-------|----------|
-| OCR taking too long | Process one document at a time, show progress bar |
-| Tesseract.js download slow | Pre-bundle binary or accept slow first run |
-| Multi-table save failing | Use transaction-like logic (save all or none) |
-| Activity timeline not updating | Check TimelineService is called after each operation |
-| OCR confidence calculation wrong | Adjust regex extraction and validation |
-| Aadhaar not masked properly | Test display masking in multiple places |
+| CORS error between Vue and Express | Enable CORS in Express, check localhost only |
+| JSON files not saving | Ensure data/ folder writable, check file paths |
+| OCR taking too long | Process one document at a time, show spinner |
+| Tesseract.js not loading | Check internet for first-time download, include in build |
+| Data lost after restart | Check JSON files in data/ folder, verify write permissions |
+| Search not working | Ensure search route exists, check API endpoint |
+| Photo crop not showing | Install vue-cropper, check component imports |
 
 ---
 
-## 📊 Progress Tracking - v2.0
+## 📊 Progress Tracking - v2.1
 
-| Sprint | Tasks | Status | Target Date |
-|--------|-------|--------|-------------|
-| 1 | 1.1-1.4 | ⬜ Not Started | Day 2 |
-| 2 | 2.1-2.3 | ⬜ Not Started | Day 4 |
-| 3 | 3.1-3.5 | ⬜ Not Started | Day 7 |
-| 4 | 4.1-4.3 | ⬜ Not Started | Day 10 |
-| 5 | 5.1-5.3 | ⬜ Not Started | Day 12 |
-| 6 | 6.1-6.4 | ⬜ Not Started | Day 14 |
-| 7 | 7.1-7.4 | ⬜ Not Started | Day 16 |
-| 8 | 8.1-8.3 | ⬜ Not Started | Day 18 |
-| 9 | 9.1-9.2 | ⬜ Not Started | Day 20 |
-| 10 | 10.1-10.4 | ⬜ Not Started | Day 22 |
-| 11 | 11.1-11.2 | ⬜ Not Started | Day 24 |
-| 12 | 12.1-12.2 | ⬜ Not Started | Day 26 |
-| 13 | 13.1-13.4 | ⬜ Not Started | Day 28 |
+| Sprint | Tasks | Estimated Days | Status |
+|--------|-------|-----------------|--------|
+| 1 | 1.1-1.4 | 2 | ⬜ |
+| 2 | 2.1-2.3 | 2 | ⬜ |
+| 3 | 3.1-3.3 | 2 | ⬜ |
+| 4 | 4.1-4.3 | 3 | ⬜ |
+| 5 | 5.1-5.3 | 2 | ⬜ |
+| 6 | 6.1-6.3 | 2 | ⬜ |
+| 7 | 7.1-7.4 | 2 | ⬜ |
+| 8 | 8.1-8.3 | 2 | ⬜ |
+| 9 | 9.1-9.2 | 2 | ⬜ |
+| 10 | 10.1-10.4 | 2 | ⬜ |
+| 11 | 11.1-11.3 | 2 | ⬜ |
+| 12 | 12.1-12.2 | 2 | ⬜ |
+| 13 | 13.1-13.4 | 3 | ⬜ |
 
 ---
 
-## 🚀 Key Differences from v1.0 to v2.0
+## 🚀 Key Advantages v2.1 (Local Web App)
 
-| Feature | v1.0 | v2.0 |
-|---------|------|------|
-| Customer Fields | Basic | Enhanced (Father, Mother, Language, Religion, etc.) |
-| Addresses | Single | Multiple + Primary |
-| Bank Accounts | Single | Multiple + Primary |
-| Documents | Basic | Vault with custom types |
-| OCR | None | Full (Tesseract.js) |
-| Websites | None | Customizable (4 defaults) |
-| Status Tracking | None | Active/Inactive/Not Interested |
-| Activity Timeline | None | Last N activities |
-| Bio-Data Customization | Template selection | Section selection |
-| Lines of Code | ~2000 | ~4000+ |
-| Estimated Time | 2-3 weeks | 3-4 weeks |
+✅ No installation required  
+✅ Works in any browser  
+✅ No internet needed (offline capable)  
+✅ All data on local PC  
+✅ Easy to backup (JSON export)  
+✅ Easy to portable (copy folder)  
+✅ Can run on Windows, Mac, Linux  
+✅ No database server needed  
+✅ Browser-based UI (responsive)  
+✅ Fast development (Vite)  
 
 ---
 
 ## 🎯 Success Criteria - Phase 1 Complete When
 
-- ✅ All 55+ tasks completed
-- ✅ All v2.0 features working
+- ✅ Web app runs locally (npm run dev)
+- ✅ All data stored in data/ JSON files
+- ✅ All v2.1 features working
 - ✅ OCR extraction for all document types working
 - ✅ Multiple addresses/banks working
 - ✅ Activity timeline functional
 - ✅ Status tracking working
-- ✅ .exe installer created and tested
-- ✅ All features tested end-to-end
-- ✅ No console errors
+- ✅ Backup/restore working
+- ✅ Import/export CSV/Excel working
+- ✅ Search working
+- ✅ No errors in console
+- ✅ Responsive design working
+- ✅ All tests pass
+- ✅ Can copy folder to USB/another PC
 - ✅ Documentation complete
 
 ---
 
-**Status:** Ready for AI Agent to begin v2.0 development  
-**Version:** 2.0 (Enhanced)  
-**Last Updated:** July 28, 2026
+**Status:** Ready for AI Agent to begin v2.1 web app development  
+**Version:** 2.1 (Local Web App - Vue.js + Express + JSON)  
+**Last Updated:** July 28, 2026  
+**Timeline:** 3-4 weeks for MVP Phase 1
 
