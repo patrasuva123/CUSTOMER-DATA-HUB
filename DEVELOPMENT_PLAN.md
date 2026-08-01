@@ -1,61 +1,70 @@
-# Customer Data Hub - Development Plan
+# Customer Data Hub - Development Plan - v2.0
 
-**Version:** 1.0  
-**Date:** July 27, 2026  
-**Target Duration:** 2-3 weeks for MVP (Phase 1)  
+**Version:** 2.0 (Enhanced with OCR, Multi-Address, Multi-Bank, Activity Timeline)  
+**Date:** July 28, 2026  
+**Target Duration:** 3-4 weeks for MVP (Phase 1)  
 **For:** AI Agent Development Guidance
 
 ---
 
-## 🎯 Development Overview
+## 🎯 Development Overview - v2.0
 
-This document provides a step-by-step implementation guide for building Customer Data Hub. Follow these tasks in sequence for optimal code organization and dependency management.
+This document provides a step-by-step implementation guide for building Customer Data Hub v2.0 with advanced features. Follow these tasks in sequence for optimal code organization and dependency management.
 
 ---
 
-## 📋 PHASE 1: Foundation & Core Features (Week 1-2)
+## 📋 PHASE 1: Foundation & Enhanced Core Features (Week 1-3)
 
 ### **Sprint 1: Project Setup (Days 1-2)**
 
 #### **Task 1.1: Initialize Electron + React Project**
-- **Description:** Set up base Electron project with React frontend
+- **Description:** Set up base Electron project with React frontend + Tesseract.js OCR
 - **Steps:**
-  1. Create project folder structure (see ARCHITECTURE.md)
+  1. Create project folder structure
   2. Initialize package.json with dependencies:
-     - electron
-     - react, react-dom
-     - express
-     - webpack, webpack-cli
-     - electron-builder
+     - electron, react, react-dom, express, webpack, webpack-cli, electron-builder
+     - **NEW:** tesseract.js (OCR engine)
   3. Create webpack.config.js for bundling
   4. Set up scripts: dev, build, start, build:exe
 - **Deliverable:** Working Electron window showing "App Ready"
-- **Dependencies:** None
 - **Testing:** Run `npm start` → Electron window launches
 
 ---
 
-#### **Task 1.2: Folder Structure & File Organization**
-- **Description:** Create all necessary folders and starter files
-- **Files to Create:**
+#### **Task 1.2: Folder Structure & File Organization - Enhanced**
+- **Description:** Create all necessary folders with v2.0 components
+- **New Files to Create:**
   ```
-  src/main/index.js (Electron entry)
-  src/main/preload.js (IPC bridge)
-  src/main/menu.js (App menu)
-  src/renderer/index.js (React entry)
-  src/renderer/App.jsx
-  src/backend/index.js (Express server)
-  src/shared/constants.js
-  data/ (empty - created at runtime)
+  src/renderer/components/CustomerPersonalProfile.jsx
+  src/renderer/components/AddressManager.jsx
+  src/renderer/components/BankAccountManager.jsx
+  src/renderer/components/DocumentVault.jsx
+  src/renderer/components/ActivityTimeline.jsx
+  src/renderer/components/OCRSettings.jsx
+  src/renderer/components/WebsiteManager.jsx
+  
+  src/backend/services/AddressService.js
+  src/backend/services/BankAccountService.js
+  src/backend/services/DocumentService.js
+  src/backend/services/OCRService.js
+  src/backend/services/WebsiteService.js
+  src/backend/services/TimelineService.js
+  
+  src/backend/routes/addresses.js
+  src/backend/routes/bankAccounts.js
+  src/backend/routes/documents.js
+  src/backend/routes/websites.js
+  src/backend/routes/ocr.js
+  
+  src/renderer/utils/ocrUtils.js
   ```
 - **Deliverable:** Full folder structure ready
-- **Dependencies:** Task 1.1
 - **Testing:** Verify all files exist, no import errors
 
 ---
 
 #### **Task 1.3: Express Backend Server Setup**
-- **Description:** Create Express server that runs within Electron
+- **Description:** Create Express server with enhanced capabilities
 - **Implementation:**
   ```javascript
   // src/backend/index.js
@@ -63,774 +72,801 @@ This document provides a step-by-step implementation guide for building Customer
   const app = express();
   
   app.use(express.json());
+  app.use(express.static('uploads'));
   
   app.listen(3000, () => {
     console.log('Backend API running on port 3000');
   });
   ```
 - **Deliverable:** Express server starts on port 3000 when app launches
-- **Dependencies:** Task 1.2
 - **Testing:** Check logs show "Backend API running on port 3000"
 
 ---
 
-#### **Task 1.4: IPC Communication Bridge**
-- **Description:** Set up secure IPC between main process and renderer
-- **Files:**
-  - `src/main/preload.js` - Expose safe IPC methods
-  - `src/main/index.js` - Register IPC handlers
-- **Implementation:**
+#### **Task 1.4: IPC Communication Bridge - Enhanced**
+- **Description:** Set up secure IPC with new channels for v2.0
+- **New IPC Channels:**
   ```javascript
-  // preload.js
-  contextBridge.exposeInMainWorld('ipcRenderer', {
-    invoke: (channel, ...args) => {
-      const validChannels = ['test-channel'];
-      if (validChannels.includes(channel)) {
-        return ipcRenderer.invoke(channel, ...args);
-      }
-    }
-  });
-  
-  // main/index.js
-  ipcMain.handle('test-channel', async () => {
-    return { message: 'IPC working' };
-  });
+  'add-address', 'update-address', 'delete-address', 'get-addresses'
+  'add-bank-account', 'update-bank-account', 'delete-bank-account'
+  'upload-document', 'process-ocr', 'delete-document'
+  'add-website', 'update-website', 'delete-website', 'get-websites'
+  'get-activity-timeline'
   ```
 - **Deliverable:** IPC communication tested and working
-- **Dependencies:** Task 1.3
-- **Testing:** React can call `window.ipcRenderer.invoke('test-channel')` and get response
+- **Testing:** React can call all new IPC channels and get responses
 
 ---
 
-### **Sprint 2: Data Layer (Days 3-4)**
+### **Sprint 2: Enhanced Data Layer (Days 3-4)**
 
-#### **Task 2.1: CSV Service - Read/Write Operations**
-- **Description:** Create service for reading and writing CSV files
-- **File:** `src/backend/services/CSVService.js`
-- **Functions:**
+#### **Task 2.1: Enhanced CSV Service**
+- **Description:** Update CSVService for multi-table operations
+- **File:** `src/backend/services/CSVService.js` (Enhanced)
+- **New Functions:**
   ```javascript
-  class CSVService {
-    async readCustomers()        // Read customers.csv
-    async writeCustomers(data)   // Write/update customers.csv
-    async readEducation()        // Read education.csv
-    async writeEducation(data)   // Write education.csv
-    async appendCustomers(rows)  // Append new customers
-    async getById(id)            // Get single customer by ID
-  }
+  async readAddresses()
+  async writeAddresses(data)
+  async readBankAccounts()
+  async writeBankAccounts(data)
+  async readDocuments()
+  async writeDocuments(data)
+  async readWebsites()
+  async writeWebsites(data)
+  async readTimeline()
+  async writeTimeline(data)
   ```
-- **Dependencies:**
-  - csv-parser (for reading)
-  - Create data/ folder if not exists
-- **Deliverable:** CSVService can read/write all CSV files
-- **Testing:** 
-  - Test reading non-existent file → creates empty CSV
-  - Test writing data → file created with correct content
-  - Test appending → new rows added without duplicating headers
+- **Deliverable:** CSVService handles all new CSV files
+- **Testing:** Can read/write all CSV files correctly
 
 ---
 
-#### **Task 2.2: Data Models**
-- **Description:** Define data structures for validation
-- **Files:**
-  - `src/backend/models/Customer.js`
-  - `src/backend/models/Education.js`
-  - `src/backend/models/AuditLog.js`
-- **Customer Model:**
-  ```javascript
-  {
-    customer_id: string (unique),
-    name: string (required),
-    age: number (1-120),
-    gender: string ('Male', 'Female', 'Other'),
-    phone: string (10 digits, required),
-    email: string (valid email, required),
-    address: string,
-    bank_name: string,
-    account_number: string,
-    ifsc: string,
-    photo_path: string,
-    notes: string,
-    created_date: date,
-    last_modified: date
-  }
-  ```
-- **Deliverable:** Data models with validation rules
-- **Testing:** Validation catches invalid data (bad email, age > 120, etc.)
+#### **Task 2.2: Enhanced Data Models**
+- **Description:** Define data structures for v2.0 features
+- **New Models:**
+  - `src/backend/models/Address.js`
+  - `src/backend/models/BankAccount.js`
+  - `src/backend/models/Document.js`
+  - `src/backend/models/Website.js`
+  - `src/backend/models/Timeline.js`
+- **Each model includes:** validation, schema, methods
+- **Deliverable:** All data models with validation rules
+- **Testing:** Validation catches invalid data
 
 ---
 
-#### **Task 2.3: Validation Utilities**
-- **Description:** Create validators for common data checks
-- **File:** `src/backend/utils/validators.js`
-- **Functions:**
+#### **Task 2.3: Validation Utilities - Enhanced**
+- **Description:** Add new validators for v2.0 fields
+- **File:** `src/backend/utils/validators.js` (Enhanced)
+- **New Functions:**
   ```javascript
-  validateEmail(email)          // RFC 5322 basic check
-  validatePhone(phone)          // Indian 10-digit format
-  validateAge(age)              // 1-120 range
-  validateRequired(value, field) // Check not null/empty
+  validateAadhaar(aadhaar)         // 12 digits
+  validatePAN(pan)                 // PAN format
+  validateIFSC(ifsc)               // IFSC format
+  validateAccountNumber(acct)      // Alphanumeric
+  validateLanguage(lang)           // Enum validation
+  validateAddressType(type)        // Predefined types
+  validateCasteNumber(caste)       // Optional format
   ```
-- **Deliverable:** Validators working for all data types
+- **Deliverable:** All validators working
 - **Testing:** Valid/invalid data passes/fails appropriately
 
 ---
 
-### **Sprint 3: Customer CRUD API (Days 5-7)**
+### **Sprint 3: Customer CRUD API - Enhanced (Days 5-7)**
 
-#### **Task 3.1: Customer Routes (CRUD)**
-- **Description:** Create REST API endpoints for customer management
-- **File:** `src/backend/routes/customers.js`
-- **Endpoints:**
+#### **Task 3.1: Enhanced Customer Routes**
+- **Description:** Update CRUD endpoints for v2.0 fields
+- **File:** `src/backend/routes/customers.js` (Enhanced)
+- **Updated Endpoints:**
   ```
-  POST   /api/customers              (Create)
+  POST   /api/customers              (Create with nested data)
   GET    /api/customers              (List all)
-  GET    /api/customers/:id          (Get by ID)
-  PUT    /api/customers/:id          (Update)
-  DELETE /api/customers/:id          (Delete)
+  GET    /api/customers/:id          (Get with all nested data)
+  PUT    /api/customers/:id          (Update customer + addresses + banks)
+  PUT    /api/customers/:id/status   (Update status only)
+  DELETE /api/customers/:id          (Delete customer)
   GET    /api/customers/search?q=... (Search by name/phone/email)
   ```
-- **Deliverable:** All CRUD endpoints working
-- **Testing:** 
-  - Create customer → stored in CSV
-  - List customers → returns all
-  - Get by ID → returns specific customer
-  - Update → changes reflected in CSV
-  - Delete → customer removed from CSV
-  - Search → finds by name/phone/email
+- **Deliverable:** All CRUD endpoints working with nested data
+- **Testing:** Create customer with multiple addresses and banks
 
 ---
 
-#### **Task 3.2: Customer Service (Business Logic)**
-- **Description:** Handle validation, duplicate detection, ID generation
-- **File:** `src/backend/services/CustomerService.js`
-- **Functions:**
+#### **Task 3.2: Enhanced Customer Service**
+- **Description:** Handle v2.0 validation and multi-table operations
+- **File:** `src/backend/services/CustomerService.js` (Enhanced)
+- **New Functions:**
   ```javascript
-  async createCustomer(data)        // Validate + check duplicates + save
-  async updateCustomer(id, data)    // Validate + save
-  async deleteCustomer(id)          // Delete and log
-  async getAll()                    // Get all customers
-  async getById(id)                 // Get specific customer
-  async searchCustomers(query)      // Search by name/phone/email
-  async checkDuplicates(data)       // Find duplicates (phone/email)
-  generateCustomerId()              // Generate unique ID (CUST_001, etc.)
+  async createCustomerWithDetails(customer, addresses, bankAccounts)
+  async updateCustomerWithDetails(id, customer, addresses, bankAccounts)
+  async getCustomerWithAllDetails(id)  // Returns customer + addresses + banks + education
+  async maskAadhaar(aadhaarNo)          // Mask display: XXXX-XXXX-1234
   ```
-- **Deliverable:** Service methods handle all business logic
-- **Testing:** Duplicates detected, validation works, IDs auto-generated
+- **Deliverable:** Service handles complex multi-table operations
+- **Testing:** Create/update customer with nested data, verify all saved correctly
 
 ---
 
-#### **Task 3.3: Education Routes & Service**
-- **Description:** Create API for education records
-- **File:** `src/backend/routes/education.js`
+#### **Task 3.3: Address Service & Routes**
+- **Description:** CRUD for multiple addresses per customer
+- **File:** 
+  - `src/backend/services/AddressService.js`
+  - `src/backend/routes/addresses.js`
 - **Endpoints:**
   ```
-  POST   /api/education              (Add education)
-  GET    /api/education/:customerId  (Get education for customer)
-  PUT    /api/education/:id          (Update)
-  DELETE /api/education/:id          (Delete)
+  POST   /api/addresses              (Add address)
+  GET    /api/addresses/:customerId  (Get all addresses for customer)
+  PUT    /api/addresses/:id          (Update address)
+  DELETE /api/addresses/:id          (Delete address)
+  PUT    /api/addresses/:id/primary  (Set as primary)
   ```
-- **Deliverable:** Education API working
-- **Testing:** Can add/update/delete education records linked to customers
+- **Deliverable:** Address management working
+- **Testing:** Add multiple addresses, set primary, update, delete
 
 ---
 
-### **Sprint 4: Frontend UI - Customer Management (Days 8-9)**
-
-#### **Task 4.1: React Component Structure**
-- **Description:** Create main React components
-- **Files:**
+#### **Task 3.4: Bank Account Service & Routes**
+- **Description:** CRUD for multiple bank accounts per customer
+- **File:**
+  - `src/backend/services/BankAccountService.js`
+  - `src/backend/routes/bankAccounts.js`
+- **Endpoints:**
   ```
-  src/renderer/components/CustomerList.jsx
-  src/renderer/components/CustomerForm.jsx
-  src/renderer/components/CustomerDetail.jsx
-  src/renderer/components/SearchBar.jsx
-  src/renderer/pages/CustomersPage.jsx
-  src/renderer/pages/HomePage.jsx
-  src/renderer/App.jsx (Main router)
+  POST   /api/bank-accounts          (Add account)
+  GET    /api/bank-accounts/:customerId (Get all accounts for customer)
+  PUT    /api/bank-accounts/:id      (Update account)
+  DELETE /api/bank-accounts/:id      (Delete account)
+  PUT    /api/bank-accounts/:id/primary (Set as primary)
   ```
-- **Deliverable:** Component structure with basic props
-- **Testing:** Components render without errors
+- **Deliverable:** Bank account management working
+- **Testing:** Add multiple accounts, set primary, update, delete
 
 ---
 
-#### **Task 4.2: Customer List View**
-- **Description:** Display all customers in a table/list
-- **Component:** `CustomerList.jsx`
-- **Features:**
-  - Fetch customers from API
-  - Display in table: Name, Phone, Email, Created Date
-  - Pagination (50 customers per page)
-  - Click to view details
-  - Delete button with confirmation
-- **Deliverable:** List shows customers from database
-- **Testing:** 
-  - Add customer in CSV manually → appears in list
-  - Delete via UI → removed from CSV
-  - Pagination works
+#### **Task 3.5: Enhanced Education Service**
+- **Description:** Add Admit Number and Registration Number fields
+- **File:** `src/backend/services/EducationService.js` (Enhanced)
+- **New Fields:**
+  - admit_number (text)
+  - registration_number (text)
+- **Deliverable:** Education records with new fields
+- **Testing:** Can save/retrieve admit and reg numbers
 
 ---
 
-#### **Task 4.3: Customer Create/Edit Form**
-- **Description:** Form for creating and editing customers
-- **Component:** `CustomerForm.jsx`
-- **Fields:**
-  - Name, Age, Gender, Phone, Email
-  - Address, Bank Name, Account Number, IFSC
-  - Notes text area
-- **Features:**
-  - Validation before submit
-  - Show error messages
-  - Submit creates/updates customer
-  - Cancel button
-- **Deliverable:** Form works for creating and editing
-- **Testing:**
-  - Fill form → create customer → appears in list
-  - Edit customer → changes saved to CSV
-  - Validation catches bad email/phone
+### **Sprint 4: OCR Engine Integration (Days 8-10)** ⭐ NEW
 
----
-
-#### **Task 4.4: Customer Detail View**
-- **Description:** Full view and edit of single customer
-- **Component:** `CustomerDetail.jsx`
-- **Features:**
-  - Display all customer info
-  - Edit button → shows form
-  - Link to education records
-  - Link to documents
-  - Delete customer button
-- **Deliverable:** Detail page shows all customer info
-- **Testing:** Can view and edit customer from detail page
-
----
-
-### **Sprint 5: Photo Upload & Crop Tool (Days 10-11)**
-
-#### **Task 5.1: Photo Upload Component**
-- **Description:** File input and preview
-- **Component:** `PhotoUploader.jsx`
-- **Features:**
-  - File input (JPG, PNG only)
-  - Show preview of selected image
-  - Launch crop tool
-- **Dependencies:**
-  - react-easy-crop or similar
-- **Deliverable:** Photo selection and preview working
-- **Testing:** Select image → preview shows
-
----
-
-#### **Task 5.2: Crop Tool Integration**
-- **Description:** Embed crop tool in photo uploader
-- **Features:**
-  - Drag image to position
-  - Resize handles to crop
-  - Rotate button
-  - Save cropped image
-- **Deliverable:** Crop tool functional
-- **Testing:** Crop and save → gets correct dimensions
-
----
-
-#### **Task 5.3: Photo Save API**
-- **Description:** Save cropped photo to file system
-- **Endpoint:** `POST /api/customers/:id/photo`
-- **Implementation:**
-  1. Receive base64 or blob image
-  2. Save to `data/photos/CUST_ID.jpg`
-  3. Update customers.csv with photo_path
-  4. Log audit entry
-- **Deliverable:** Photo saved and linked to customer
-- **Testing:** 
-  - Upload photo → file created in data/photos/
-  - Customer record has photo_path set
-  - Audit log shows photo update
-
----
-
-### **Sprint 6: Bio-Data PDF Generator (Days 12-13)**
-
-#### **Task 6.1: Puppeteer Integration**
-- **Description:** Set up Puppeteer for PDF generation
-- **Installation:** `npm install puppeteer`
+#### **Task 4.1: Tesseract.js Integration**
+- **Description:** Set up OCR engine for document processing
+- **Installation:** `npm install tesseract.js`
 - **Test Script:**
   ```javascript
-  const puppeteer = require('puppeteer');
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.setContent('<h1>Test</h1>');
-  await page.pdf({ path: 'test.pdf' });
+  const Tesseract = require('tesseract.js');
+  const { createWorker } = Tesseract;
+  
+  const worker = await createWorker('eng');
+  const result = await worker.recognize('path/to/image.jpg');
+  const text = result.data.text;
+  await worker.terminate();
   ```
-- **Deliverable:** Puppeteer installed and tested
-- **Testing:** Can generate simple PDF
+- **Deliverable:** Tesseract.js installed and tested
+- **Testing:** Can recognize text from sample document image
 
 ---
 
-#### **Task 6.2: Bio-Data HTML Template**
-- **Description:** Create default HTML template for bio-data
-- **File:** `src/backend/templates/default-biodata.html`
-- **Content:**
-  ```html
-  <html>
-    <head>
-      <style>
-        /* Professional styling */
-        body { font-family: Arial; padding: 20px; }
-        .header { text-align: center; }
-        .photo { width: 150px; height: 150px; }
-        .section { margin: 20px 0; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>{{name}}</h1>
-        <img class="photo" src="{{photo_path}}" />
-      </div>
-      <div class="section">
-        <h2>Contact Information</h2>
-        <p>Phone: {{phone}}</p>
-        <p>Email: {{email}}</p>
-        <p>Address: {{address}}</p>
-      </div>
-      <div class="section">
-        <h2>Education</h2>
-        {{education_html}}
-      </div>
-    </body>
-  </html>
-  ```
-- **Deliverable:** Professional template ready
-- **Testing:** Template renders correctly with sample data
-
----
-
-#### **Task 6.3: Bio-Data Service**
-- **Description:** Service to generate PDF from customer data
-- **File:** `src/backend/services/BioDataService.js`
+#### **Task 4.2: OCR Service - Document Type Extraction**
+- **Description:** Service to extract data based on document type
+- **File:** `src/backend/services/OCRService.js`
 - **Functions:**
   ```javascript
-  async generatePDF(customerId, templateId)   // Generate PDF
-  async generateWord(customerId, templateId)  // Generate DOCX
-  async mergeData(customer, template)         // Merge data with template
+  async extractAadhaar(imagePath)        // Extract: no, name, dob, address
+  async extractPAN(imagePath)            // Extract: pan_no
+  async extractCaste(imagePath)          // Extract: cert_no, date_of_issue
+  async extractPassbook(imagePath)       // Extract: account_no, ifsc, bank_name
+  async extractVoterID(imagePath)        // Extract: voter_id
+  async extractRationCard(imagePath)     // Extract: ration_card_no
+  async extractEducationCert(imagePath)  // Extract: cert_no, board, score
+  
+  async processDocumentOCR(imagePath, documentType)
+    // Generic function that calls appropriate extractor
+    // Returns: { extractedData, confidence, message }
   ```
-- **Deliverable:** PDF generation working
-- **Testing:** Generate PDF → file created with correct data
+- **Implementation:**
+  ```javascript
+  async processDocumentOCR(imagePath, documentType) {
+    const worker = await createWorker('eng');
+    const result = await worker.recognize(imagePath);
+    const text = result.data.text;
+    const confidence = result.data.confidence;
+    
+    let extractedData = {};
+    
+    if (documentType === 'Aadhaar') {
+      extractedData = {
+        aadhaar_no: extractRegex(text, /\d{4}\s\d{4}\s\d{4}/),
+        name: extractName(text),
+        dob: extractDate(text),
+        address: extractAddress(text)
+      };
+    }
+    // ... handle other document types
+    
+    await worker.terminate();
+    
+    return {
+      extractedData,
+      confidence: confidence > 90,
+      message: `Successfully extracted: Aadhaar No (${extractedData.aadhaar_no}), Name (${extractedData.name})`
+    };
+  }
+  ```
+- **Deliverable:** OCR extraction working for all document types
+- **Testing:** Test each document type with sample images
 
 ---
 
-#### **Task 6.4: Bio-Data Routes**
-- **Description:** API endpoints for bio-data generation
-- **File:** `src/backend/routes/biodata.js`
+#### **Task 4.3: OCR Routes**
+- **Description:** API endpoints for OCR processing
+- **File:** `src/backend/routes/ocr.js`
 - **Endpoints:**
   ```
-  POST /api/biodata/generate-pdf    (Generate PDF)
-  POST /api/biodata/generate-word   (Generate Word)
-  GET  /api/biodata/templates       (List templates)
+  POST /api/ocr/process       (Process document OCR)
+  POST /api/ocr/test          (Test OCR with confidence)
+  GET  /api/ocr/settings      (Get OCR settings)
   ```
-- **Deliverable:** Routes call BioDataService
-- **Testing:** Can generate PDF/Word for customer
+- **Deliverable:** OCR routes working
+- **Testing:** Upload document and extract data via API
 
 ---
 
-#### **Task 6.5: Bio-Data Generator UI**
-- **Description:** Frontend component to generate bio-data
-- **Component:** `BioDataGenerator.jsx`
+### **Sprint 5: Document Vault with OCR (Days 11-12)**
+
+#### **Task 5.1: Document Service**
+- **Description:** Manage document uploads and OCR extraction
+- **File:** `src/backend/services/DocumentService.js`
+- **Functions:**
+  ```javascript
+  async uploadDocument(customerId, file, documentType)
+  async processDocumentOCR(documentId, documentType)
+  async updateDocumentWithOCRData(documentId, ocrData, confidence)
+  async getDocumentsForCustomer(customerId)
+  async deleteDocument(documentId)
+  async addCustomDocumentType(customerId, typeName)
+  ```
+- **Deliverable:** Document management with OCR integration
+- **Testing:** Upload document, process OCR, save extracted data
+
+---
+
+#### **Task 5.2: Document Routes**
+- **Description:** API for document operations
+- **File:** `src/backend/routes/documents.js`
+- **Endpoints:**
+  ```
+  POST   /api/documents/upload        (Upload document)
+  POST   /api/documents/:id/ocr       (Process OCR)
+  GET    /api/documents/:customerId   (Get customer documents)
+  PUT    /api/documents/:id           (Update document)
+  DELETE /api/documents/:id           (Delete document)
+  ```
+- **Deliverable:** Document routes working
+- **Testing:** Upload, OCR process, retrieve documents
+
+---
+
+#### **Task 5.3: Document Vault UI Component**
+- **Description:** Frontend for document management with OCR
+- **Component:** `src/renderer/components/DocumentVault.jsx`
+- **Features:**
+  - Document type selector (predefined + custom)
+  - File upload input
+  - Show uploaded documents list
+  - OCR extraction display when document processed
+  - Editable extracted data form
+  - Delete document button
+  - Show confidence score with extraction
+- **Deliverable:** Document vault UI functional
+- **Testing:** Upload document, see OCR extraction, edit, save
+
+---
+
+### **Sprint 6: Important Websites Management (Days 13-14)**
+
+#### **Task 6.1: Website Service**
+- **Description:** Manage configurable websites list
+- **File:** `src/backend/services/WebsiteService.js`
+- **Functions:**
+  ```javascript
+  async getWebsites()              // Get all websites
+  async addWebsite(name, url)      // Add custom website
+  async updateWebsite(id, name, url) // Update website
+  async deleteWebsite(id)          // Delete website
+  async getDefaultWebsites()       // Load defaults if not set
+  ```
+- **Default Websites (stored in important_websites.json):**
+  1. Aadhaar - https://myaadhaar.uidai.gov.in/
+  2. CSC - https://digitalseva.csc.gov.in/
+  3. Voter - https://voters.eci.gov.in/login
+  4. Ration - https://food.wb.gov.in/
+- **Deliverable:** Website management working
+- **Testing:** Can add, edit, delete websites
+
+---
+
+#### **Task 6.2: Website Routes**
+- **Description:** API for website management
+- **File:** `src/backend/routes/websites.js`
+- **Endpoints:**
+  ```
+  GET    /api/websites              (Get all)
+  POST   /api/websites              (Add)
+  PUT    /api/websites/:id          (Update)
+  DELETE /api/websites/:id          (Delete)
+  ```
+- **Deliverable:** Website routes working
+- **Testing:** CRUD operations on websites
+
+---
+
+#### **Task 6.3: Website Management UI**
+- **Description:** Settings page component to manage websites
+- **Component:** `src/renderer/components/WebsiteManager.jsx`
+- **Features:**
+  - List of all websites with edit/delete buttons
+  - Add new website form (Name + URL)
+  - Edit website modal
+  - Delete confirmation
+- **Deliverable:** Website manager UI functional
+- **Testing:** Add, edit, delete websites from settings
+
+---
+
+#### **Task 6.4: Important Web Links Tab in Customer Detail**
+- **Description:** Display configured websites as clickable links
+- **Component:** New tab in `src/renderer/pages/CustomerDetailPage.jsx`
+- **Features:**
+  - Display list of websites from settings
+  - Clickable links that open in default browser
+  - Show website icon (if available)
+- **Deliverable:** Website links tab working
+- **Testing:** Click link → opens in browser
+
+---
+
+### **Sprint 7: Frontend - Enhanced Customer Profile (Days 15-16)**
+
+#### **Task 7.1: Enhanced Customer Personal Profile Component**
+- **Description:** Form for personal details with new v2.0 fields
+- **Component:** `src/renderer/components/CustomerPersonalProfile.jsx`
+- **Fields (organized in sections):**
+  ```
+  Basic Info:
+  - Full Name, Father's Name, Mother's Name, DOB, Gender, Age
+  
+  Language & Religion:
+  - Primary Language (Dropdown)
+  - Religion (Dropdown)
+  
+  Marital Info:
+  - Marital Status (Dropdown: Single, Married, Divorced, Widowed)
+  - Spouse Name (Optional)
+  
+  Contact:
+  - Mobile Number, Email
+  
+  Identity Documents:
+  - Aadhaar No (12 digits, masked XXXX-XXXX-1234, optional)
+  - Voter ID (alphanumeric, optional)
+  - Ration Card No (alphanumeric, optional)
+  - PAN Number (optional)
+  
+  Caste Information:
+  - Caste Dropdown (General, OBC, SC, ST, Other)
+  - If Other: Show text input for Certificate Number
+  - Date of Issue (date picker)
+  
+  Blood Group (Dropdown, optional)
+  ```
+- **Deliverable:** Personal profile form complete
+- **Testing:** Fill form, validate all fields, save successfully
+
+---
+
+#### **Task 7.2: Address Manager Component**
+- **Description:** UI to manage multiple addresses per customer
+- **Component:** `src/renderer/components/AddressManager.jsx`
+- **Features:**
+  - List of existing addresses in table
+  - Add new address button → opens modal
+  - Modal fields: Type, Street, State, Block, Gram Station, Post Office, Village, Pin Code
+  - Mark as Primary checkbox (only one can be primary)
+  - Edit button for each address
+  - Delete button for each address
+- **Deliverable:** Address manager working
+- **Testing:** Add, edit, delete multiple addresses
+
+---
+
+#### **Task 7.3: Bank Account Manager Component**
+- **Description:** UI to manage multiple bank accounts per customer
+- **Component:** `src/renderer/components/BankAccountManager.jsx`
+- **Features:**
+  - List of existing accounts in table
+  - Add new account button → opens modal
+  - Modal fields: Bank Name, Branch, Account Number, IFSC Code, Account Type
+  - Mark as Primary checkbox (only one can be primary)
+  - Edit button for each account
+  - Delete button for each account
+  - Passbook upload button with OCR extraction
+- **Deliverable:** Bank account manager working
+- **Testing:** Add, edit, delete multiple accounts
+
+---
+
+#### **Task 7.4: Activity Timeline Component**
+- **Description:** Display recent activities in sidebar
+- **Component:** `src/renderer/components/ActivityTimeline.jsx`
+- **Features:**
+  - Show last 10 activities (configurable in settings)
+  - Format: "Customer Name - Action - Date"
+  - Actions: Customer Added, Updated, Deleted, Bio-data Generated, Document Uploaded
+  - Clickable to navigate to customer
+  - Color coding for different action types
+- **Deliverable:** Activity timeline displaying correctly
+- **Testing:** Perform actions, see in timeline
+
+---
+
+### **Sprint 8: Frontend - Photo, Bio-Data, Education (Days 17-18)**
+
+#### **Task 8.1: Photo Upload with Crop Tool**
+- **Description:** Photo management with built-in crop
+- **Component:** `src/renderer/components/PhotoUploader.jsx`
+- **Features:**
+  - File input (JPG, PNG only)
+  - Preview of selected image
+  - Launch crop tool
+  - Drag, resize, rotate image
+  - Save cropped photo
+- **Deliverable:** Photo upload and crop working
+- **Testing:** Upload photo, crop, save
+
+---
+
+#### **Task 8.2: Enhanced Education Component**
+- **Description:** Education records with Admit and Registration Numbers
+- **Component:** `src/renderer/components/EducationForm.jsx`
+- **Per Education Record:**
+  - Education Level (Dropdown)
+  - When level selected, show fields:
+    - Course/Stream, Institution, Year, Board/University
+    - **Admit Number (text)**
+    - **Registration Number (text)**
+    - Total Marks, Obtained Marks, Percentage (auto-calculated), Grade
+    - Document upload with OCR extraction
+- **Deliverable:** Education form with new fields
+- **Testing:** Add education with admit and reg numbers
+
+---
+
+#### **Task 8.3: Customizable Bio-Data Generator**
+- **Description:** Settings to select which sections to include
+- **Component:** `src/renderer/components/BioDataGenerator.jsx` (Enhanced)
 - **Features:**
   - Select customer from dropdown
+  - Checkboxes to select which sections to include:
+    - ☑️ Personal Details
+    - ☑️ Full Name
+    - ☑️ DOB
+    - ☐ Father's/Mother's Name
+    - ☑️ Marital Status
+    - ☑️ Education & Qualifications
+    - ☑️ Address Details
+    - ☑️ Important Web Links
+    - ☑️ Aadhaar (UIDAI)
+    - (etc.)
   - Select format (PDF or Word)
   - Generate button
-  - Shows "Saving..." during generation
-  - Shows success message with file location
-  - Save As dialog for user to choose location
-- **Deliverable:** UI component working
-- **Testing:** 
-  - Click Generate → file created
   - User chooses save location
-  - Success message shows
+- **Deliverable:** Customizable bio-data working
+- **Testing:** Generate with different section selections
 
 ---
 
-### **Sprint 7: Bulk Import (Days 14-15)**
+### **Sprint 9: Customer Directory with Status (Days 19-20)**
 
-#### **Task 7.1: Import Service**
-- **Description:** Service to validate and import CSV file
-- **File:** `src/backend/services/ImportService.js`
-- **Functions:**
-  ```javascript
-  async validateImport(filePath)    // Parse + validate rows
-  async detectDuplicates(rows)      // Find duplicates in existing data
-  async importCustomers(rows, options) // Save valid rows
-  ```
-- **Implementation:**
-  1. Parse CSV file
-  2. Validate each row against data model
-  3. Check for duplicates (phone/email)
-  4. Return: { valid: 450, errors: 30, duplicates: 20 }
-- **Deliverable:** Import validation working
-- **Testing:** 
-  - Valid data → accepted
-  - Invalid data → errors listed
-  - Duplicates → detected and shown
-
----
-
-#### **Task 7.2: Import Routes**
-- **Description:** API for importing CSV
-- **File:** `src/backend/routes/import.js`
-- **Endpoints:**
-  ```
-  POST /api/import/validate    (Validate file)
-  POST /api/import/execute     (Execute import)
-  ```
-- **Request/Response:**
-  ```
-  POST /api/import/validate
-  Body: { filePath: '/path/to/file.csv' }
-  Response: {
-    valid: 450,
-    errors: 30,
-    duplicates: 20,
-    errorDetails: [...]
-  }
-  
-  POST /api/import/execute
-  Body: { 
-    filePath: '...',
-    action: 'import_all' or 'skip_duplicates'
-  }
-  Response: { success: true, imported: 450 }
-  ```
-- **Deliverable:** Routes handle import flow
-- **Testing:** Validation → show dialog → execute import
-
----
-
-#### **Task 7.3: Import UI Component**
-- **Description:** Frontend for file selection and confirmation
-- **Component:** `ImportExport.jsx`
-- **Flow:**
-  1. File input - user selects CSV
-  2. Click "Validate" → shows dialog
-  3. Dialog shows: Valid 450, Errors 30, Duplicates 20
-  4. User clicks: "Import All" or "Skip Duplicates" or "Cancel"
-  5. Shows success message
-- **Deliverable:** Import UI complete
-- **Testing:** 
-  - Select file → validation runs
-  - Dialog shows correct counts
-  - Click import → customers added to list
-
----
-
-### **Sprint 8: Export Functionality (Days 16-17)**
-
-#### **Task 8.1: CSV/Excel Export Service**
-- **Description:** Export customer data to CSV and Excel
-- **File:** `src/backend/services/ExportService.js`
-- **Functions:**
-  ```javascript
-  async exportCSV(filepath)    // Export all to CSV
-  async exportExcel(filepath)  // Export all to XLSX with formatting
-  ```
-- **Dependencies:**
-  - xlsx library for Excel
-- **Deliverable:** Export service working
-- **Testing:** 
-  - Export CSV → valid CSV file created
-  - Export Excel → valid XLSX file created
-  - Data matches database
-
----
-
-#### **Task 8.2: Export Routes**
-- **Description:** API endpoints for export
-- **File:** `src/backend/routes/export.js`
-- **Endpoints:**
-  ```
-  POST /api/export/csv         (Export to CSV)
-  POST /api/export/excel       (Export to Excel)
-  ```
-- **Deliverable:** Routes call export service
-- **Testing:** Files created successfully
-
----
-
-#### **Task 8.3: Export UI**
-- **Description:** Buttons in ImportExport component
+#### **Task 9.1: Enhanced Customer List View**
+- **Description:** Display customers with status tracking
+- **Component:** `src/renderer/components/CustomerList.jsx` (Enhanced)
 - **Features:**
-  - "Export to CSV" button → Save As dialog → file saved
-  - "Export to Excel" button → Save As dialog → file saved
-  - Show success message with file location
-- **Deliverable:** Export buttons working
+  - Table columns: ID, Name, Phone, Address (Village Name), Status, Documents, Actions
+  - **Status column:** Dropdown selector (Active, Inactive, Not Interested)
+  - Sortable by any column
+  - Pagination (50 per page)
+  - Click row to view details
+  - Delete button with confirmation
+  - Export to CSV/Excel button
+- **Deliverable:** Enhanced customer list working
 - **Testing:** 
-  - Click export → file created in chosen location
-  - File opens correctly in Excel/text editor
+  - Add customers, see in list
+  - Change status via dropdown
+  - Sort, paginate, export
 
 ---
 
-### **Sprint 9: Audit Logging (Days 18-19)**
-
-#### **Task 9.1: Audit Service**
-- **Description:** Log all customer data changes
-- **File:** `src/backend/services/AuditService.js`
-- **Functions:**
-  ```javascript
-  async logChange(customerId, action, field, oldValue, newValue)
-  async logAction(action, details)
-  async getAuditLog(customerId)
-  async exportAuditLog(filepath)
-  ```
-- **Storage:**
-  - JSON format for app use
-  - CSV format for export
-- **Deliverable:** Audit service logging changes
-- **Testing:** 
-  - Create customer → audit log entry created
-  - Update field → change logged with old/new values
-  - Audit log shows in JSON and CSV
+#### **Task 9.2: Dashboard with Timeline**
+- **Description:** Dashboard showing stats and recent activity
+- **Component:** `src/renderer/pages/HomePage.jsx` (Enhanced)
+- **Features:**
+  - Total customers count
+  - Recently added customers
+  - Activity timeline (last 10 activities)
+  - Quick action buttons (Add Customer, View Directory, Bio-Data Generator, Settings)
+- **Deliverable:** Dashboard with timeline functional
+- **Testing:** Dashboard displays stats and timeline correctly
 
 ---
 
-#### **Task 9.2: Integrate Audit Logging**
-- **Description:** Add audit logging to all operations
-- **Updates:**
-  - CustomerService.js → call AuditService on all changes
-  - BioDataService.js → log "bio-data generated"
-  - ImportService.js → log "customers imported"
-  - etc.
-- **Deliverable:** All operations logged
-- **Testing:** Check audit_logs.json → all changes recorded
+### **Sprint 10: Settings - OCR & Websites (Days 21-22)**
+
+#### **Task 10.1: OCR Settings Component**
+- **Description:** Configure OCR in settings
+- **Component:** `src/renderer/components/OCRSettings.jsx`
+- **Features:**
+  - Toggle: Enable/Disable OCR globally
+  - Checkboxes for document types:
+    - ☑️ Aadhaar
+    - ☑️ Caste Certificate
+    - ☑️ PAN Card
+    - ☑️ Passbook
+    - ☑️ Voter ID
+    - ☑️ Ration Card
+    - ☑️ Education Certificates
+  - Confidence threshold slider (0-100%, set to 90%)
+  - Language dropdown (English only)
+  - Status indicator: "OCR Ready" / "OCR Disabled"
+- **Deliverable:** OCR settings component working
+- **Testing:** Toggle settings, verify applied globally
 
 ---
 
-#### **Task 9.3: Audit Log Viewer UI**
-- **Description:** UI to view audit trail
+#### **Task 10.2: Bio-Data Section Customization**
+- **Description:** Settings to select bio-data sections
 - **Component:** Part of Settings page
 - **Features:**
-  - Show recent audit log entries (latest first)
-  - Filter by customer or action
-  - Export audit log to CSV
-  - Search by date range
-- **Deliverable:** Audit log viewer working
-- **Testing:** 
-  - Make change → appears in audit log
-  - Filter works
-  - Export generates CSV
+  - Checkboxes for each section:
+    - Personal Details, Full Name, DOB, Father's/Mother's Name
+    - Marital Status, Education, Work Experience
+    - Address Details, Important Web Links, Aadhaar
+  - Save configuration
+  - Apply to future bio-data generation
+- **Deliverable:** Bio-data customization settings working
+- **Testing:** Configure sections, generate bio-data
 
 ---
 
-### **Sprint 10: Settings & Theme (Days 20-21)**
-
-#### **Task 10.1: Theme System**
-- **Description:** Implement light/dark theme toggle
-- **Files:**
-  ```
-  src/renderer/styles/light.css
-  src/renderer/styles/dark.css
-  src/renderer/utils/themeManager.js
-  ```
-- **Implementation:**
-  - Store theme preference in metadata.json
-  - Load theme on app start
-  - Provide toggle function
-  - Apply CSS class to body element
-- **Deliverable:** Theme toggle working
-- **Testing:** 
-  - Toggle theme → colors change
-  - Close app and reopen → theme persists
+#### **Task 10.3: Timeline Configuration**
+- **Description:** Settings for activity timeline
+- **Features:**
+  - Dropdown to select number of recent activities (5, 10, 15, 20)
+  - Save preference
+- **Deliverable:** Timeline configuration working
+- **Testing:** Change count, dashboard shows correct number
 
 ---
 
-#### **Task 10.2: Settings Page**
-- **Description:** Settings UI component
-- **Component:** `Settings.jsx`
+#### **Task 10.4: Theme & Backup Settings**
+- **Description:** Existing settings (Phase 1) still functional
 - **Features:**
   - Theme toggle (Light/Dark)
-  - Backup button → Choose folder → backup created
-  - Restore button → Choose backup folder → restore
-  - Show app version
-  - Show total customers count
-  - Show last backup date
-  - Audit log viewer section
-- **Deliverable:** Settings page complete
-- **Testing:** All settings functional
+  - Backup button
+  - Restore button
+  - Audit log viewer
+- **Deliverable:** All settings working
+- **Testing:** Toggle theme, backup, restore, view audit logs
 
 ---
 
-#### **Task 10.3: Backup & Restore Service**
-- **Description:** Manual backup/restore functionality
-- **File:** `src/backend/services/BackupService.js`
+### **Sprint 11: Bulk Import & Export (Days 23-24)**
+
+#### **Task 11.1: Enhanced Bulk Import**
+- **Description:** Import customers from CSV with v2.0 fields
+- **Component:** `src/renderer/components/ImportExport.jsx` (Enhanced)
+- **Features:**
+  - File input for CSV
+  - Validate file with new fields
+  - Detect duplicates
+  - Show error summary
+  - Import valid rows or cancel
+  - Show success message with count
+- **Deliverable:** Import working with v2.0 fields
+- **Testing:** Import CSV with new fields
+
+---
+
+#### **Task 11.2: Enhanced Export**
+- **Description:** Export customers with v2.0 data
+- **Features:**
+  - CSV export: Include all new fields (aadhaar, caste, addresses, banks, etc.)
+  - Excel export: Include new fields with formatting
+  - Show success message with file location
+- **Deliverable:** Export working with v2.0 data
+- **Testing:** Export CSV/Excel, open in programs
+
+---
+
+### **Sprint 12: Audit Logging - Enhanced (Days 25-26)**
+
+#### **Task 12.1: Enhanced Audit Service**
+- **Description:** Log all v2.0 operations
+- **File:** `src/backend/services/AuditService.js` (Enhanced)
+- **Log all:**
+  - Customer create/update/delete
+  - Address add/update/delete
+  - Bank account add/update/delete
+  - Education add/update/delete
+  - Document upload + OCR extraction
+  - Status change
+  - Website customization
+  - Settings changes
+- **Deliverable:** All operations logged
+- **Testing:** Perform actions, check audit logs
+
+---
+
+#### **Task 12.2: Activity Timeline Service**
+- **Description:** Track recent activities
+- **File:** `src/backend/services/TimelineService.js` (New)
 - **Functions:**
   ```javascript
-  async createBackup(destinationPath)   // Copy all data to folder
-  async restoreBackup(backupPath)       // Restore from backup
+  async addActivity(customerId, action, description)
+  async getRecentActivities(limit = 10)
+  async getActivitiesForCustomer(customerId)
   ```
-- **Backup folder structure:**
-  ```
-  backup_2026-07-27_143022/
-  ├── customers.csv
-  ├── education.csv
-  ├── documents.csv
-  ├── addresses.csv
-  ├── metadata.json
-  └── photos/ (if including photos)
-  ```
-- **Deliverable:** Backup/restore working
-- **Testing:** 
-  - Create backup → folder created with all files
-  - Restore backup → data replaced correctly
+- **Deliverable:** Activity tracking working
+- **Testing:** Activities logged and retrieved correctly
 
 ---
 
-### **Sprint 11: Build & Package (Day 22)**
+### **Sprint 13: Build & Package (Days 27-28)**
 
-#### **Task 11.1: Configure electron-builder**
-- **Description:** Set up .exe builder configuration
+#### **Task 13.1: Configure electron-builder**
+- **Description:** Set up .exe builder
 - **File:** `electron-builder.json`
-- **Configuration:**
-  ```json
-  {
-    "appId": "com.customerdata.hub",
-    "productName": "Customer Data Hub",
-    "win": {
-      "target": ["nsis"]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
-  }
-  ```
+- **Configuration:** Similar to Phase 1
 - **Deliverable:** Build config ready
 - **Testing:** Config validates without errors
 
 ---
 
-#### **Task 11.2: Create App Icon**
-- **Description:** Professional app icon with custom branding
-- **Files:**
-  - `public/icon.png` (256x256)
-  - `public/icon.ico` (Windows icon)
-- **Branding:** Include organization name/initials
+#### **Task 13.2: Create App Icon**
+- **Description:** Professional app icon with org branding
+- **Files:** `public/icon.png`, `public/icon.ico`
 - **Deliverable:** Icons created and placed
-- **Testing:** Icon displays correctly in installer and taskbar
+- **Testing:** Icon displays correctly
 
 ---
 
-#### **Task 11.3: Build .exe Installer**
-- **Description:** Generate Windows .exe installer
+#### **Task 13.3: Build .exe Installer**
+- **Description:** Generate Windows installer
 - **Command:** `npm run build:exe`
-- **Output:** `CustomerDataHub-1.0.0-Setup.exe` (~150-200 MB)
+- **Output:** `CustomerDataHub-2.0.0-Setup.exe`
 - **Installation Test:**
   1. Run .exe on clean Windows PC
   2. Complete installation
-  3. Launch app from Start Menu
-  4. Create test customer
-  5. Generate bio-data
-  6. All features work
+  3. Test all v2.0 features:
+     - Create customer with multiple addresses/banks
+     - Upload document and process OCR
+     - Generate bio-data with selected sections
+     - Change customer status
+     - View activity timeline
+     - Configure websites and OCR settings
+  4. All features work
 - **Deliverable:** Working .exe installer
-- **Testing:** Install on Windows → app works
+- **Testing:** Install on Windows and test thoroughly
 
 ---
 
-#### **Task 11.4: Documentation & Handoff**
-- **Description:** Create deployment documentation
-- **Files to Create:**
-  - `README.md` (Quick start)
-  - `DEPLOYMENT.md` (How to run .exe)
-  - `USER_MANUAL.md` (User guide)
+#### **Task 13.4: Documentation & Release**
+- **Description:** Final documentation
+- **Files:**
+  - `README.md` (Updated for v2.0)
+  - `DEPLOYMENT.md`
+  - `USER_MANUAL.md`
+  - Release notes
 - **Deliverable:** Documentation complete
-- **Testing:** Follow README → can build and run app
+- **Testing:** Follow README to build and run
 
 ---
 
 ---
 
-## 📈 PHASE 2: Advanced Features (Week 3)
-
-*(These can be added after Phase 1 MVP is complete)*
-
-### **Task 12: Custom Template Builder**
-- Drag-drop template editor
-- Save custom templates
-- Multiple template support
-
-### **Task 13: Advanced Search**
-- Filter by qualification, age, location
-- Saved searches/filters
-
-### **Task 14: Data Recovery UI**
-- Restore from backup in UI
-- Version history
-
----
-
-## ✅ Quality Checklist
+## ✅ Enhanced Quality Checklist
 
 Before marking any task complete:
 
 - [ ] Code follows project structure
 - [ ] Error handling implemented
-- [ ] Logging added
+- [ ] Logging added (audit trail)
 - [ ] Tested with sample data
 - [ ] No console errors
 - [ ] Follows existing code style
 - [ ] Comments added for complex logic
 - [ ] Dependencies installed and working
+- [ ] **NEW:** OCR confidence working
+- [ ] **NEW:** Multi-table operations coordinated
+- [ ] **NEW:** Activity timeline updating correctly
 
 ---
 
-## 🐛 Common Issues & Solutions
+## 🐛 Common Issues & Solutions - v2.0
 
 | Issue | Solution |
 |-------|----------|
-| Puppeteer takes long time to download | Pre-bundled binary or use Headless Chrome |
-| CSV files getting corrupted | Use proper CSV library (csv-parser) |
-| Photo path not found | Use absolute paths, not relative |
-| IPC communication failing | Check preload.js exposes channel |
-| Theme not persisting | Save to metadata.json, load on startup |
+| OCR taking too long | Process one document at a time, show progress bar |
+| Tesseract.js download slow | Pre-bundle binary or accept slow first run |
+| Multi-table save failing | Use transaction-like logic (save all or none) |
+| Activity timeline not updating | Check TimelineService is called after each operation |
+| OCR confidence calculation wrong | Adjust regex extraction and validation |
+| Aadhaar not masked properly | Test display masking in multiple places |
 
 ---
 
-## 📊 Progress Tracking
+## 📊 Progress Tracking - v2.0
 
 | Sprint | Tasks | Status | Target Date |
 |--------|-------|--------|-------------|
-| 1 | 1.1-1.4 | Not Started | Day 2 |
-| 2 | 2.1-2.3 | Not Started | Day 4 |
-| 3 | 3.1-3.3 | Not Started | Day 7 |
-| 4 | 4.1-4.4 | Not Started | Day 9 |
-| 5 | 5.1-5.3 | Not Started | Day 11 |
-| 6 | 6.1-6.5 | Not Started | Day 13 |
-| 7 | 7.1-7.3 | Not Started | Day 15 |
-| 8 | 8.1-8.3 | Not Started | Day 17 |
-| 9 | 9.1-9.3 | Not Started | Day 19 |
-| 10 | 10.1-10.3 | Not Started | Day 21 |
-| 11 | 11.1-11.4 | Not Started | Day 22 |
+| 1 | 1.1-1.4 | ⬜ Not Started | Day 2 |
+| 2 | 2.1-2.3 | ⬜ Not Started | Day 4 |
+| 3 | 3.1-3.5 | ⬜ Not Started | Day 7 |
+| 4 | 4.1-4.3 | ⬜ Not Started | Day 10 |
+| 5 | 5.1-5.3 | ⬜ Not Started | Day 12 |
+| 6 | 6.1-6.4 | ⬜ Not Started | Day 14 |
+| 7 | 7.1-7.4 | ⬜ Not Started | Day 16 |
+| 8 | 8.1-8.3 | ⬜ Not Started | Day 18 |
+| 9 | 9.1-9.2 | ⬜ Not Started | Day 20 |
+| 10 | 10.1-10.4 | ⬜ Not Started | Day 22 |
+| 11 | 11.1-11.2 | ⬜ Not Started | Day 24 |
+| 12 | 12.1-12.2 | ⬜ Not Started | Day 26 |
+| 13 | 13.1-13.4 | ⬜ Not Started | Day 28 |
 
 ---
 
-## 🚀 Getting Started for AI Agent
+## 🚀 Key Differences from v1.0 to v2.0
 
-1. Read this file completely
-2. Read REQUIREMENTS.md for feature details
-3. Read ARCHITECTURE.md for technical structure
-4. Start with **Task 1.1** (Project Setup)
-5. Complete tasks sequentially
-6. Test after each task
-7. Commit to GitHub after each sprint
-8. Update progress tracking
-
----
-
-## 📞 Reference Documents
-
-- **REQUIREMENTS.md** - What to build (features, acceptance criteria)
-- **ARCHITECTURE.md** - How to build (technical structure, data flow)
-- **CLARIFICATION_INTERVIEW.md** - Why decisions were made (justification)
+| Feature | v1.0 | v2.0 |
+|---------|------|------|
+| Customer Fields | Basic | Enhanced (Father, Mother, Language, Religion, etc.) |
+| Addresses | Single | Multiple + Primary |
+| Bank Accounts | Single | Multiple + Primary |
+| Documents | Basic | Vault with custom types |
+| OCR | None | Full (Tesseract.js) |
+| Websites | None | Customizable (4 defaults) |
+| Status Tracking | None | Active/Inactive/Not Interested |
+| Activity Timeline | None | Last N activities |
+| Bio-Data Customization | Template selection | Section selection |
+| Lines of Code | ~2000 | ~4000+ |
+| Estimated Time | 2-3 weeks | 3-4 weeks |
 
 ---
 
-**Status:** Ready for AI Agent to begin development  
-**Last Updated:** July 27, 2026  
-**Next Review:** After Sprint 1 completion
+## 🎯 Success Criteria - Phase 1 Complete When
+
+- ✅ All 55+ tasks completed
+- ✅ All v2.0 features working
+- ✅ OCR extraction for all document types working
+- ✅ Multiple addresses/banks working
+- ✅ Activity timeline functional
+- ✅ Status tracking working
+- ✅ .exe installer created and tested
+- ✅ All features tested end-to-end
+- ✅ No console errors
+- ✅ Documentation complete
+
+---
+
+**Status:** Ready for AI Agent to begin v2.0 development  
+**Version:** 2.0 (Enhanced)  
+**Last Updated:** July 28, 2026
 
