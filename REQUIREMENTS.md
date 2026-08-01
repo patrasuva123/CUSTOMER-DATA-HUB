@@ -1,25 +1,38 @@
-# Customer Data Hub - Product Requirements Document (PRD) - v2.0
+# Customer Data Hub - Product Requirements Document (PRD) - v2.1
 
-**Version:** 2.0 (Updated with Enhanced Features)  
+**Version:** 2.1 (Web App - Vue.js, Local Storage)  
 **Date:** July 28, 2026  
 **Status:** Ready for Development  
-**Target Platform:** Windows Desktop (.exe)  
+**Target Platform:** Web Application (Browser-based, Local PC Only)  
 
 ---
 
 ## 📋 Executive Summary
 
-**Project:** Customer Data Hub - Advanced customer management with comprehensive personal data, OCR-based document extraction, and professional bio-data generation.
+**Project:** Customer Data Hub - Advanced customer management web application with comprehensive personal data, OCR-based document extraction, and professional bio-data generation.
 
-**Target Users:** Individual business owners or small organizations (single user)
+**Target Users:** Individual business owners or small organizations (single user, local PC only)
 
 **Max Capacity:** Up to 5,000 customers
 
-**Key Enhancement (v2.0):** Advanced personal data fields, OCR-powered document extraction, customizable document vault, improved UI with status tracking and activity timeline.
+**Platform:** Web Application (Vue.js + Local Backend)
+- No installation required (just run from folder)
+- Works in any modern browser (Chrome, Firefox, Edge, Safari)
+- Responsive design (desktop optimized, mobile friendly)
+- **Data stored ONLY on local PC** (no cloud, no internet required)
+- Run offline completely
+- Portable folder - can move entire app to USB/another PC
+
+**Key Advantages:** 
+- Access from browser on same PC
+- No internet required
+- All data stays on local machine
+- No installation, just folder-based
+- Can run on Windows, Mac, Linux
 
 ---
 
-## 🎯 Core Features (MVP Phase 1 - v2.0)
+## 🎯 Core Features (MVP Phase 1 - v2.1)
 
 ### 1. **Customer Management with Enhanced Personal Data** ✅
 
@@ -137,7 +150,8 @@
     - Education Cert → Extract: Certificate Number, Board, Score
   - **Extraction message:** "Successfully extracted: Aadhaar Number (XXXX-XXXX-1234), Name (Rajesh Sen), DOB (08/01/1990)"
   - User can review and edit extracted data before saving
-  - ❌ No encryption (local storage only, no sensitive data transmission)
+  - ✅ Documents stored in local PC folder
+  - No cloud upload
 
 ---
 
@@ -146,14 +160,14 @@
 - Built-in photo crop tool
 - Supported formats: JPG, PNG
 - User can: drag, resize, rotate before saving
-- Auto-save cropped photo to customer profile
+- Auto-save cropped photo to local customer folder
 
 ---
 
 ### 6. **Bio-Data Generator** ✅
 
-- Generate PDF documents using Puppeteer
-- Generate editable Word (.docx) documents
+- Generate PDF documents using html2pdf
+- Generate downloadable HTML with custom styling
 - Fully editable format
 - **Customizable content in Settings:**
   - Toggle which sections to include:
@@ -168,8 +182,9 @@
     - ✅ Important Web Links
     - ✅ Aadhaar (UIDAI)
     - (And more as per settings)
-- User chooses save location (Save As dialog)
-- Supported export: PDF + Word
+- User downloads bio-data as PDF or HTML
+- Saved in app downloads folder
+- Supported export: PDF + HTML
 
 ---
 
@@ -184,7 +199,7 @@
 #### **In Customer Detail Page:**
 - New tab: "Important Web Links"
 - Display list of configured websites with clickable links
-- Open in default browser
+- Open in new browser tab
 
 #### **In Settings:**
 - Manage websites:
@@ -192,6 +207,7 @@
   - Edit existing website
   - Delete website
   - Changes apply globally to all customers
+  - Stored in local PC
 
 ---
 
@@ -201,7 +217,7 @@
   - Options: Active, Inactive, Not Interested
   - Dropdown selector
   - Sortable/Filterable
-  - Stored in customers.csv
+  - Stored locally on PC
   - Visible in Customer Detail page
 
 ---
@@ -241,7 +257,7 @@
 
 - **CSV Export:** All customer data to CSV file
 - **Excel Export:** All customer data to XLSX with formatting
-- User chooses save location
+- User chooses save location (browser download to local PC)
 - Export includes all categories (customers, education, documents, addresses)
 
 ---
@@ -263,22 +279,22 @@
 
 #### **Website Management:**
 - Add/Edit/Delete Important Websites
-- Changes apply globally
+- Changes apply globally to all customers
 
 #### **Bio-Data Customization:**
 - Select which sections to include in generated bio-data
-- Choose default template (if multiple templates)
+- Choose default template
 
 #### **Theme:**
 - Light and Dark mode toggle
 - Persistent (remembers user preference)
 
-#### **Backup & Restore:**
-- Manual backup only
-- Button: "Backup Now"
-- Creates backup of all CSV files to user-selected location
-- Timestamp included in backup folder name
-- Restore from backup
+#### **Data Backup & Export:**
+- Export all data to JSON format
+- Import from backup JSON file
+- Manual download/upload only
+- Button: "Backup Now" → Downloads all data as JSON
+- Button: "Restore from Backup" → Upload JSON to restore
 
 #### **Audit Logging:**
 - View audit trail
@@ -291,54 +307,166 @@
 
 ---
 
-## 📊 Data Storage Structure
+## 📊 Data Storage Structure - Local PC Only
 
-### **Enhanced CSV Schema:**
+### **Folder Structure (App Root):**
+```
+customer-data-hub/
+├── index.html (Entry point)
+├── app.js (Vue app bootstrap)
+├── server.js (Local Node.js server)
+├── package.json
+├── data/
+│   ├── customers.json (All customer data)
+│   ├── important_websites.json (Website list)
+│   ├── audit_logs.json (Audit trail)
+│   ├── settings.json (App settings)
+│   ├── activity_timeline.json (Recent activities)
+│   └── db/ (IndexedDB backup)
+│       └── export.json (Full backup)
+├── uploads/
+│   ├── photos/
+│   │   └── CUST_001.jpg (Customer photos)
+│   └── documents/
+│       └── CUST_001_Aadhaar.jpg (Uploaded documents)
+├── dist/
+│   └── (Compiled Vue app)
+└── src/
+    ├── components/
+    └── pages/
+```
 
-**customers.csv:**
-```
-customer_id, name, father_name, mother_name, dob, gender, age, primary_language, religion, marital_status, spouse_name, phone, email, aadhaar_no, voter_id, ration_card_no, pan_number, caste, caste_cert_no, caste_cert_date, blood_group, photo_path, status, notes, created_date, last_modified
+### **Data Files Format - JSON (No Database):**
+
+**data/customers.json:**
+```json
+{
+  "customers": [
+    {
+      "id": "CUST_001",
+      "name": "Rajesh Kumar",
+      "father_name": "Ram Kumar",
+      "mother_name": "Geeta Singh",
+      "dob": "1990-01-08",
+      "gender": "Male",
+      "age": 35,
+      "primary_language": "English",
+      "religion": "Hindu",
+      "marital_status": "Married",
+      "spouse_name": "Priya Kumar",
+      "phone": "9876543210",
+      "email": "rajesh@email.com",
+      "aadhaar_no": "XXXX-XXXX-1234",
+      "voter_id": "VOTER2024001",
+      "ration_card_no": "RC-2024-001",
+      "pan_number": "ABCDE1234F",
+      "caste": "OBC",
+      "caste_cert_no": "CASTE-2024-001",
+      "caste_cert_date": "2024-01-15",
+      "blood_group": "O+",
+      "status": "Active",
+      "photo_path": "uploads/photos/CUST_001.jpg",
+      "addresses": [
+        {
+          "id": "ADDR_001",
+          "type": "Residential",
+          "street": "123 Main St",
+          "state": "Delhi",
+          "block": "North",
+          "village": "Village A",
+          "pin_code": "110001",
+          "is_primary": true
+        }
+      ],
+      "bank_accounts": [
+        {
+          "id": "BANK_001",
+          "bank_name": "HDFC Bank",
+          "account_number": "123456789012",
+          "ifsc_code": "HDFC0001234",
+          "account_type": "Savings",
+          "is_primary": true
+        }
+      ],
+      "education": [
+        {
+          "id": "EDU_001",
+          "level": "B.Tech",
+          "course_name": "Computer Science",
+          "institution": "IIT Delhi",
+          "year_completed": 2012,
+          "board_university": "IIT",
+          "admit_number": "ADM-2012-001",
+          "registration_number": "REG-2012-001",
+          "total_marks": 1000,
+          "obtained_marks": 850,
+          "percentage": 85,
+          "grade": "A"
+        }
+      ],
+      "documents": [
+        {
+          "id": "DOC_001",
+          "type": "Aadhaar",
+          "file_path": "uploads/documents/CUST_001_Aadhaar.jpg",
+          "ocr_extracted": {
+            "aadhaar_no": "123456789012",
+            "name": "Rajesh Kumar",
+            "dob": "1990-01-08",
+            "address": "Delhi"
+          },
+          "ocr_confidence": 95
+        }
+      ],
+      "created_date": "2026-01-15",
+      "last_modified": "2026-07-28"
+    }
+  ]
+}
 ```
 
-**addresses.csv:**
-```
-customer_id, address_id, address_type, street_address, state, block, gram_station, post_office, village, pin_code, is_primary, created_date
+**data/settings.json:**
+```json
+{
+  "theme": "dark",
+  "ocr_enabled": true,
+  "ocr_confidence_threshold": 90,
+  "ocr_document_types": ["Aadhaar", "Caste", "PAN", "Passbook", "VoterID", "RationCard", "EducationCert"],
+  "timeline_recent_count": 10,
+  "biodata_included_sections": [
+    "personal_details",
+    "full_name",
+    "dob",
+    "marital_status",
+    "education",
+    "work_experience",
+    "address_details",
+    "important_websites",
+    "aadhaar_uidai"
+  ],
+  "language": "English",
+  "last_backup": "2026-07-28T14:30:22Z",
+  "total_customers": 150
+}
 ```
 
-**bank_accounts.csv:**
-```
-customer_id, account_id, bank_name, branch, account_number, ifsc_code, account_type, is_primary, created_date
-```
-
-**education.csv:**
-```
-customer_id, education_id, level, course_name, institution, year_completed, board_university, admit_number, registration_number, total_marks, obtained_marks, percentage, grade, document_path, created_date
-```
-
-**documents.csv:**
-```
-doc_id, customer_id, document_type, file_name, file_path, upload_date, ocr_extracted_data, created_date
-```
-
-**important_websites.json:**
+**data/important_websites.json:**
 ```json
 [
-  { "id": "web_001", "name": "Aadhaar", "url": "https://myaadhaar.uidai.gov.in/", "created_date": "2026-01-01" },
-  { "id": "web_002", "name": "CSC", "url": "https://digitalseva.csc.gov.in/", "created_date": "2026-01-01" }
+  {
+    "id": "web_001",
+    "name": "Aadhaar",
+    "url": "https://myaadhaar.uidai.gov.in/",
+    "created_date": "2026-01-01"
+  },
+  {
+    "id": "web_002",
+    "name": "CSC",
+    "url": "https://digitalseva.csc.gov.in/",
+    "created_date": "2026-01-01"
+  }
 ]
 ```
-
-**audit_logs.json & audit_logs.csv:**
-- High-detail change tracking with timestamps
-
-**metadata.json:**
-- App settings including:
-  - theme (light/dark)
-  - ocr_enabled (true/false)
-  - ocr_confidence_threshold (90)
-  - timeline_recent_count (10)
-  - biodata_included_sections (array)
-  - last_backup timestamp
 
 ---
 
@@ -346,9 +474,11 @@ doc_id, customer_id, document_type, file_name, file_path, upload_date, ocr_extra
 
 ### **Search Scope: Phase 1**
 - **Fields:** Name, Phone Number, Email ONLY
-- **Type:** Simple text match (fast)
+- **Type:** Full-text search
 - **Case-insensitive**
 - **Partial match supported**
+- **Real-time search** (as user types)
+- **Searches local data only** (no server calls)
 
 ---
 
@@ -375,61 +505,99 @@ doc_id, customer_id, document_type, file_name, file_path, upload_date, ocr_extra
 
 ---
 
-## 🎨 UI/UX Structure
+## 🎨 UI/UX Structure - Web App
+
+### **Responsive Design:**
+- **Desktop:** Full sidebar, multi-column layout
+- **Tablet:** Collapsible sidebar, responsive grid
+- **Mobile:** Bottom navigation, single column
 
 ### **Main Navigation:**
 1. **Dashboard** - Stats, recent customers, quick actions
 2. **Add New Customer** - Form to create customer
 3. **Customer Directory** - List view with status, sortable
 4. **Customer Detail** - Full profile view/edit
-5. **Bio-Data Generator** - Generate PDFs/Word docs
-6. **Important Web Links** - Tab in Customer Detail
-7. **Activity Timeline** - Sidebar showing recent activity
-8. **System Settings** - OCR, Websites, Theme, Backup, Audit
+5. **Bio-Data Generator** - Generate PDFs/HTML docs
+6. **Settings** - OCR, Websites, Theme, Backup, Audit
 
-### **Customer Detail Page Sections:**
-- Customer Personal Profile (collapsible)
-- Bank & Financial Details (collapsible)
-- Address Details (collapsible, multiple)
-- Education & Qualifications (collapsible, multiple)
-- Document Vault (collapsible)
-- Important Web Links (new tab)
-- Work Experience (collapsible)
-- Other Data (collapsible)
+### **Customer Detail Page Sections (Tabs/Accordion):**
+- Customer Personal Profile
+- Bank & Financial Details
+- Address Details
+- Education & Qualifications
+- Document Vault
+- Important Web Links
+- Work Experience
+- Other Data
 
 ---
 
-## 🔐 Security & Privacy
+## 🔐 Security & Privacy - Local PC Only
 
-- **No encryption** (single-user, local storage)
-- **No authentication** (single-user desktop app)
-- **Aadhaar masked display** (XXXX-XXXX-1234)
-- Audit logs track all changes for accountability
-- Backup files for data recovery
-- Local storage only (no cloud/internet)
+- ✅ **NO internet required** - Complete offline operation
+- ✅ **All data on local PC** - No cloud, no server transmission
+- ✅ **No encryption** (single-user, local storage only)
+- ✅ **Aadhaar masked display** (XXXX-XXXX-1234)
+- ✅ Audit logs track all changes locally
+- ✅ JSON files stored in `data/` folder
+- ✅ Backup/restore JSON format only
+- ✅ No sensitive data in URLs
+- ✅ Browser LocalStorage for UI preferences only
+- ✅ All processing happens client-side (OCR in browser)
 
 ---
 
-## 📦 Technology Stack
+## 📦 Technology Stack - Local Web App
 
 | Component | Technology |
 |-----------|-----------|
-| **Framework** | Electron (Windows .exe) |
-| **Backend** | Node.js + Express |
-| **Frontend** | React or Vue.js |
-| **Storage** | CSV files + JSON |
-| **PDF Generation** | Puppeteer |
+| **Frontend** | Vue 3 + Vite |
+| **State Management** | Pinia |
+| **UI Components** | Vuetify 3 or PrimeVue |
+| **Styling** | Tailwind CSS |
+| **Backend** | Node.js + Express (lightweight local server) |
+| **Data Storage** | JSON files (no database) |
+| **PDF Generation** | html2pdf.js |
 | **Excel Export** | xlsx library |
-| **OCR Engine** | Tesseract.js (free, offline) |
-| **UI Framework** | Material-UI or Ant Design |
-| **File Operations** | Node.js fs module |
-| **Image Crop** | React-easy-crop or similar |
+| **OCR Engine** | Tesseract.js (browser-based, offline) |
+| **Image Crop** | vue-cropper |
+| **Local Storage** | Browser LocalStorage + JSON files |
+| **File System** | Node.js fs module (read/write JSON files) |
+
+---
+
+## 🚀 How to Run - Local PC
+
+### **Setup (One-time):**
+```bash
+1. Download/unzip app folder
+2. Navigate to folder in terminal
+3. npm install
+4. npm run dev
+```
+
+### **Daily Use:**
+```bash
+1. Open terminal in app folder
+2. npm run dev
+3. Browser opens at http://localhost:5173
+4. Use app normally
+5. Close terminal when done
+```
+
+### **No Installation Required:**
+- Just a folder with files
+- Can copy entire folder to USB
+- Can move to another PC anytime
+- All data travels with folder
 
 ---
 
 ## 📋 Acceptance Criteria
 
 ### **Phase 1 Complete When:**
+- [ ] Web app runs in browser without installation
+- [ ] All local data stored in JSON files
 - [ ] All new personal data fields working
 - [ ] Address management (multiple, primary) working
 - [ ] Bank account management (multiple, primary) working
@@ -439,15 +607,18 @@ doc_id, customer_id, document_type, file_name, file_path, upload_date, ocr_extra
 - [ ] Activity timeline with last 10 customers working
 - [ ] Important websites tab in customer detail working
 - [ ] Settings page with all new options working
-- [ ] Bio-data customizable sections working
+- [ ] Bio-data PDF/HTML download working
 - [ ] Photo upload with crop tool working
 - [ ] Bulk import with warnings working
 - [ ] CSV/Excel export functional
 - [ ] Theme toggle works
 - [ ] Audit logging captures all changes
-- [ ] Manual backup functional
-- [ ] .exe installer created and tested
+- [ ] Backup/restore JSON working
 - [ ] Search (Name/Phone/Email) working
+- [ ] Works in Chrome, Firefox, Edge, Safari
+- [ ] No internet required (works offline)
+- [ ] All data stays on local PC
+- [ ] Can copy folder to USB/another PC
 
 ---
 
@@ -455,14 +626,14 @@ doc_id, customer_id, document_type, file_name, file_path, upload_date, ocr_extra
 
 | Phase | Timeline | Status |
 |-------|----------|--------|
-| Phase 1 (MVP v2.0) | Week 1-3 | Design → Build → Test |
-| Phase 2 (Advanced) | Week 4-5 | Custom templates, advanced search |
-| Phase 3 (Polish) | Week 6+ | UI refinement, performance |
-| Production Release | TBD | .exe installer ready |
+| Phase 1 (MVP v2.1) | Week 1-3 | Design → Build → Test |
+| Phase 2 (Advanced) | Week 4-5 | Custom templates, advanced search, export templates |
+| Phase 3 (Polish) | Week 6+ | UI refinement, performance, mobile optimization |
+| Production Release | TBD | Local web app ready |
 
 ---
 
 ## ✅ Decision Log
 
-All 21 original clarification questions + New v2.0 enhancements documented in CLARIFICATION_INTERVIEW.md
+All 21 original clarification questions + New v2.1 local web app enhancements documented in CLARIFICATION_INTERVIEW.md
 
